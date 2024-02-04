@@ -1,0 +1,15 @@
+Package: rSirem
+Type: Package
+Title: MSI tools
+Version: 0.1.0
+Date: 2024-02-02
+Author: Esteban del Castillo
+Maintainer: Esteban del Castillo <esteban.delcastillo@urv.cat>
+Description: MSI deconvolution using Sirem as entropy measure.
+License: GPL3
+Encoding: UTF-8
+LazyData: TRUE
+Imports: Rcpp (>= 1.0.12)
+LinkingTo: Rcpp
+RoxygenNote: 7.2.3
+Roxygen: list(markdown = TRUE)
