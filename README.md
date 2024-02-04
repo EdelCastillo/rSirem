@@ -1,15 +1,14 @@
 # rSirem
 
-rSirem is an R package useful for deconvolution of overlapping peaks in mass spectrometry (MS).
-From a range of masses belonging to a data set in imzML format, it generates a set of centroids (peak-picking).
-The algorithm does not require any type of prior processing although it tolerates any type of intervention.
+rSirem is an R package useful for deconvolution of overlapping peaks in mass spectrometry (MS). From a range of masses belonging to a data set in imzML format, it generates a set of centroids (peak-picking). The algorithm does not require any type of prior processing although it tolerates any type of intervention.
+
+![](images/deconv_4.png)
 
 ## Installation
 
 devtools::install_github("EdelCastillo/rSirem")
 
-Please note that is a development version and no release has been made yet.
-So, keep looking at this page for future updates and releases.
+Please note that is a development version and no release has been made yet. So, keep looking at this page for future updates and releases.
 
 NOTE: This package has dependencies on another:
 
@@ -80,8 +79,7 @@ rMSIData -\> sample data obtained from the file with rMSI2::LoadMsiData().
 
 siremInfo -\> sirem data and peaks obtained from rGetSiremPeaks().
 
-pixel -\> pixel whose spectrum is deconvolved.
-if pixel\<=0, averaged data is used
+pixel -\> pixel whose spectrum is deconvolved. if pixel\<=0, averaged data is used
 
 minMeanValue -\> minimum averaged value of a peak to consider it valid.
 
@@ -89,8 +87,7 @@ For **example**:
 
 > gaussInfo\<-rGetGaussians(myData, siremPeaks, 0, 1);
 
-**Step 4**.- The results are displayed.
-This is an optional step.
+**Step 4**.- The results are displayed. This is an optional step.
 
 > rPlotDeconv\<-function(gaussInfo)
 >
