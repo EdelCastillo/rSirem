@@ -2,7 +2,7 @@
 
 rSirem is an R package useful for deconvolution of overlapping peaks in mass spectrometry (MS). From a range of masses belonging to a data set in imzML format, it generates a set of centroids (peak-picking). The algorithm does not require any type of prior processing although it tolerates any type of intervention.
 
-![](images/deconv_4.png)
+![](./deconv_4.png)
 
 ## Installation
 
