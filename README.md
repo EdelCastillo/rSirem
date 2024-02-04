@@ -1,9 +1,3 @@
----
-editor_options: 
-  markdown: 
-    wrap: sentence
----
-
 # rSirem
 
 rSirem is an R package useful for deconvolution of overlapping peaks in mass spectrometry (MS).
