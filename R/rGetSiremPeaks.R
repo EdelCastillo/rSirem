@@ -72,19 +72,21 @@ rGetSiremPeaks<-function(rMSIData, params, initMass, finalMass)
 #  images<-rMSI2::load_imzMLImages(rMSIData, initMass, size);
 #  images<-rImzML::getImages(rMSIData, initMass, size);
   
-# images<-rLoadImages(rMSIData, rMSIData$mass[initMassIndex+1], size);
-  
-#.....................................
-    load("/home/esteban/MALDI/rSirem/images_C30_700_900.RData");
-#  load("/home/esteban/MALDI/rSirem/images_C60_300_500.RData");
-#        load("/home/esteban/MALDI/rSirem/images_C120_300_500.RData");
-            init <-rGetIndexFromMass(700, rMSIData$mass);   #index to the initial mass.
-            newInit=initMassIndex-init;
-            newEnd=size+newInit;
-            if(newInit==0)  {newInit=1;}
-            images<-images[, newInit:newEnd-1];
-            size=ncol(images);
- # .....................................
+ images<-rLoadImages(rMSIData, rMSIData$mass[initMassIndex+1], size);
+
+#...............................................
+# loading from preloaded files. It is very fast
+#...............................................
+#    load("/home/esteban/MALDI/rSirem/images_C30_700_900.RData");
+#    load("/home/esteban/MALDI/rSirem/images_C60_300_500.RData");
+#    load("/home/esteban/MALDI/rSirem/images_C120_300_500.RData");
+#            init <-rGetIndexFromMass(700, rMSIData$mass);   #index to the initial mass.
+#            newInit=initMassIndex-init;
+#            newEnd=size+newInit;
+#            if(newInit==0)  {newInit=1;}
+#            images<-images[, newInit:newEnd-1];
+#            size=ncol(images);
+# .....................................
   
   msg<-sprintf("OK -> pixels:%d scans:%d", nrow(images), ncol(images));
   print(msg);
