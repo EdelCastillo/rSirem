@@ -6,12 +6,12 @@
 Returns the index to the full mass axis whose mass is closest to the given mass.
 The algorithm of successive approximations is used.}
 \usage{
-rGetIndexFromMass(rMSIData, mass)
+rGetIndexFromMass(mass, massAxis)
 }
 \arguments{
-\item{rMSIData}{-> sample data obtained from the file with rMSI2::LoadMsiData().}
-
 \item{mass}{-> mass in Daltons}
+
+\item{rMSIData}{-> sample data obtained from the file with rMSI2::LoadMsiData().}
 }
 \value{
 The index to mass if OK; -1 if KO

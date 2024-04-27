@@ -701,8 +701,8 @@ scans2Daltons<-function(scans, massAxis)
 #' sirem_vs_rMSI2
 #' genera datos estadísticos con las desviaciones de ambos algoritmos respecto a una muestra patrón
 #' 
-#' @param resolution -> sample. Valids: "C30k" y "C60k"
-#' @param SNR        -> signal to noise ratio. Valids: 1, 2, 3, 5, 7
+#' @param sample -> sample. Valids: "C30k" y "C60k"
+#' @param SNR    -> signal to noise ratio. Valids: 1, 2, 3, 5, 7
 #'
 #' @return nothing
 #'

@@ -3,26 +3,36 @@
 \name{rPlotDeconv3}
 \alias{rPlotDeconv3}
 \title{rPlotDeconv3
-Presents an image with the Gaussians of tree peaks,
+Presents an image with the Gaussians of two peaks,
 along with the curve resulting from the sum of them (in red).
 The blue circles indicate the original concentration data to be adjusted.
-The parameters come from rGetGaussians()}
+The drawInfo parameters come from rGetGaussians()}
 \usage{
 rPlotDeconv3(
   drawInfo1,
   drawInfo2,
   drawInfo3,
+  minMass = 0,
+  maxMass = 0,
   rMSI2_peaks1 = -1,
   rMSI2_peaks2 = -1,
   rMSI2_peaks3 = -1
 )
 }
 \arguments{
-\item{drawInfo1:}{gaussians info from low resolution peak}
+\item{drawInfo1:}{gaussians info from low    resolution peak}
 
 \item{drawInfo2:}{gaussians info from median resolution peak}
 
-\item{drawInfo3:}{gaussians info from high resolution peak
+\item{drawInfo3:}{gaussians info from high   resolution peak}
+
+\item{minMass:}{minimun mz}
+
+\item{maxMass:}{maximun mz}
+
+\item{rMSI2_peaks1:}{median resolution peaks from rMSI peak matrix}
+
+\item{rMSI3_peaks1:}{high   resolution peaks from rMSI peak matrix
 drawInfo$gaussians:
 column 1 -> mean values of each Gaussian.
 column 2 -> standard deviation.
@@ -36,8 +46,8 @@ column 2 -> X axis (in Daltons).}
 }
 \description{
 rPlotDeconv3
-Presents an image with the Gaussians of tree peaks,
+Presents an image with the Gaussians of two peaks,
 along with the curve resulting from the sum of them (in red).
 The blue circles indicate the original concentration data to be adjusted.
-The parameters come from rGetGaussians()
+The drawInfo parameters come from rGetGaussians()
 }

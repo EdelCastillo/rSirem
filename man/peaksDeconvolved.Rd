@@ -3,25 +3,37 @@
 \name{peaksDeconvolved}
 \alias{peaksDeconvolved}
 \title{peaksDeconvolved
-identifica los picos de magnitud que han sido deconvolucionados
-Los resultados son previos al ajuste por gausianas}
+Para cada pico de magnitud compuesto que contiene a picos simples de sirem,
+se anotan los picos de sirem incluidos y las gausianas asociadas}
 \usage{
-peaksDeconvolved(peaksInfo, gaussInfo)
+peaksDeconvolved(peaksInfo, gaussInfo, uPeakList = c())
 }
 \arguments{
-\item{peaksInfo}{-> list returned from rGetSiremPeaks()}
+\item{peaksInfo}{-> sirem peaks, from rGetSiremPeaks()}
+
+\item{gaussInfo}{-> gaussians,   from rGetGaussians()}
+
+\item{uPeakList}{-> lista de picos compuestos a considerar, esten o no deconvolucionados}
 }
 \value{
-a matrix: rows=magPeaks deconvolved;
-col[] =mass of maximun
+a list: siremMassMatrix, gaussMassMatrix, gaussMagMatrix, gaussMassList
+siremMassMatrix mantiene las masas asociadas a los picos de sirem
+gaussMassMatrix mantiene las masas asociadas a las gausianas luego del ajuste con el valor promediado de magnitudes
+gaussMagMatrix  mantiene las magnitudes asociadas a cada gausiana
+gaussList es un array con las gausianas de gaussMassMatrix
+siremMassMatrix & gaussMassMatrix and gaussMagMatrix have the same format:
+rows=united magPeaks deconvolved;
+col[] =central mass of each peak
 col\link{1}=index to magnitude united Peak
 col\link{2}=low  mass to magnitude united peak
 col\link{3}=high mass to magnitude united peak
-col\link{4}=number of peaks into magnitude peak
+col\link{4}=number of single peaks into magnitude peak
 col\link{5...}=list of masses into magnitude united peaks
+
+#attn: en peakInfo, si en un pico de  magnitud no se encuentra ningún máximo de sirem,
 }
 \description{
 peaksDeconvolved
-identifica los picos de magnitud que han sido deconvolucionados
-Los resultados son previos al ajuste por gausianas
+Para cada pico de magnitud compuesto que contiene a picos simples de sirem,
+se anotan los picos de sirem incluidos y las gausianas asociadas
 }

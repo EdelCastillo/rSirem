@@ -6,10 +6,10 @@
 Presents an image with the centroids of two data set into a mass range,
 The parameters come from rGetGaussians() and rMSI2::LoadPeakMatrix()}
 \usage{
-rPlotPeaks(siremPeak, MSI2peak, minMass, maxMass)
+rPlotPeaks(gaussians, MSI2peak, minMass, maxMass)
 }
 \arguments{
-\item{siremPeak}{-> gaussians info matrix from return of rGetGaussians()}
+\item{gaussians}{-> gaussians info matrix from return of rGetGaussians()}
 
 \item{MSI2peak}{-> list from rMSI2::LoadPeakMatrix()}
 

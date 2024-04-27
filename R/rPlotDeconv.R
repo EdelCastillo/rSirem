@@ -497,7 +497,7 @@ rPlotDeconv2<-function(drawInfo1, drawInfo2, minMass=0, maxMass=0, rMSI2_peaks1=
 #' Presents an image with the centroids of two data set into a mass range,
 #' The parameters come from rGetGaussians() and rMSI2::LoadPeakMatrix()
 #' 
-#' @param siremPeak -> gaussians info matrix from return of rGetGaussians()
+#' @param gaussians -> gaussians info matrix from return of rGetGaussians()
 #' @param MSI2peak  -> list from rMSI2::LoadPeakMatrix()
 #' @param minMass -> low  mass to analyze (Da)
 #' @param minMass -> high mass to analyze (Da)
@@ -513,11 +513,11 @@ rPlotDeconv2<-function(drawInfo1, drawInfo2, minMass=0, maxMass=0, rMSI2_peaks1=
 #' @return -1 if KO; 0 if OK
 #' @export
 #' 
-rPlotPeaks<-function(siremPeak, MSI2peak, minMass, maxMass) 
+rPlotPeaks<-function(gaussians, MSI2peak, minMass, maxMass) 
 {
-  logicSiremMass<-siremPeak[,1]>=minMass & siremPeak[,1]<=maxMass;
+  logicSiremMass<-gaussians[,1]>=minMass & gaussians[,1]<=maxMass;
   logicMSImass  <-MSI2peak$mass>=minMass & MSI2peak$mass<=maxMass;
-  siremMass<-(siremPeak[,1])[logicSiremMass];
+  siremMass<-(gaussians[,1])[logicSiremMass];
   MSI2mass  <-MSI2peak$mass[logicMSImass];
 
   #Los ejes X se unifican 
@@ -531,10 +531,10 @@ rPlotPeaks<-function(siremPeak, MSI2peak, minMass, maxMass)
   minX=max(mzLowArray); #valor mínimo del eje unificado
   maxX=min(mzHighArray);#valor máximo del eje unificado
   
-  logicSiremMass<-siremPeak[,1]>=minX & siremPeak[,1]<=maxX;
+  logicSiremMass<-gaussians[,1]>=minX & gaussians[,1]<=maxX;
   logicMSImass  <-MSI2peak$mass>=minX & MSI2peak$mass<=maxX;
-  siremMass<-(siremPeak[,1])[logicSiremMass];
-  siremMag <-(siremPeak[,3])[logicSiremMass];
+  siremMass<-(gaussians[,1])[logicSiremMass];
+  siremMag <-(gaussians[,3])[logicSiremMass];
   MSI2mass <-MSI2peak$mass[logicMSImass];
   
   meanMag=rep(0, times=length(MSI2peak$mass));
