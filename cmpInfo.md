@@ -9,27 +9,19 @@ output: html_document
 ## **Graphics tools**:
 
 
-### rPlotDeconv\<-function(gaussInfo)  
-> #### Presents an image with the Gaussians passed as arguments.
-> **Description of the parameters:**  
-> gaussInfo: information returned by rGetGaussians().  
-
-> For **example**:  
-> rPlotDeconv(gaussInfo)
- 
-
 ### rPlotDeconv3<-function(gaussInfo1, gaussInfo2, gaussInfo3, minMass=0, maxMass=0, rMSI2_peaks1=-1, rMSI2_peaks2=-1, rMSI2_peaks3=-1)
 > #### Presents an image with the gaussians passed as arguments for tree data.
 > **Description of the parameters:**
 ```
-    gaussInfo1: gaussians info from low    resolution peak;   
-    gaussInfo2: gaussians info from median resolution peak;   
-    gaussInfo3: gaussians info from high   resolution peak;   
+    gaussInfo1: gaussians info from low    resolution peak: rGetGaussians();   
+    gaussInfo2: gaussians info from median resolution peak: rGetGaussians();   
+    gaussInfo3: gaussians info from high   resolution peak: rGetGaussians();   
        minMass: minimun mz;   
        maxMass: maximun mz;   
   rMSI2_peaks1: low    resolution peaks from rMSI2 peak matrix;   
-  rMSI2_peaks1: median resolution peaks from rMSI2 peak matrix;   
-  rMSI3_peaks1: high   resolution peaks from rMSI2 peak matrix;  
+  rMSI2_peaks2: median resolution peaks from rMSI2 peak matrix;   
+  rMSI3_peaks3: high   resolution peaks from rMSI2 peak matrix;  
+  NOTE: rMSI2_peaks come from rMSI2::LoadPeakMatrix(), from rMSI2::processWizard()
 ```
 
 > For **example**:  
@@ -72,7 +64,7 @@ output: html_document
     maxMass: maximun mz;  
 ```
 
-## **Tests tools**
+## **Tests tools:**
 
 
 ### fitQualitySirem<-function(reference, testSirem, testGauss, refMinMag=1e-6, testMinMag=1e-6, minMass=0, maxMass=0)
