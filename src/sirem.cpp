@@ -172,7 +172,8 @@ float Sirem::getSection(GROUP_F *mzInfo_p, float cutLevel, float noiseLevel)
     //only pixels with magnitude greater than noiseLevel are considered
     float level=getValueFromPercentil(mzInfo_p->set, mzInfo_p->size, cutLevel, noiseLevel); //exclude zeros
     if(level==0.0) level=1e-6; //avoid null value
-
+    else if(level==-1) {m_imageSection.size=0; return 0;} //evita imágenes con valor máximo menor que el ruido
+    
     //The list of pixels that exceed or equal in magnitude to the cutoff level is generated.
     m_imageSection.size=0; //start
     for(int j=0; j<mzInfo_p->size; j++) //for all pixels
@@ -216,7 +217,7 @@ float Sirem::getValueFromPercentil(float *data, int size, float percentil, float
             {
             if(data[sortDataIndex_p[indexLow]]>minValue) break;
             }
-        if(indexLow==size-1) return 0.0;
+        if(indexLow==size-1) return -1.0;
         else
             size-=indexLow;
         }

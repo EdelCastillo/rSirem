@@ -110,13 +110,13 @@ int SiremPeaks::newMz(GROUP_F *mzInfo_p)
         }
 
     else //the entropy is obtained for each cut
-    {
+      {
         for(int cut=0; cut<m_siremContex_p->cutLevels.size; cut++)
             {
             m_siremCuts_p[cut][m_siremIndex]=m_sirem_p->getSirem(mzInfo_p, m_siremContex_p->cutLevels.set[cut], m_siremContex_p->noiseLevel, m_siremContex_p->minSectionDensity);
             //mzRelPxBins.set[k]=m_sirem_p->getBinaryImageDensity();
             }
-    }
+      }
     m_siremIndex++; //updates to the first free index in the matrix.
     return m_siremIndex;
 }
@@ -137,7 +137,6 @@ float SiremPeaks::getSirem(float *magnitudes_p, int magSize, float cutLevel)
     GROUP_F magInfo;
     magInfo.set=magnitudes_p;
     magInfo.size=magSize;
-
     //average value of the magnitudes for this scan.
     for(int i=0; i<magSize; i++)
         meanValue+=magnitudes_p[i];
@@ -160,6 +159,7 @@ int SiremPeaks::getPeaksList()
     if(m_siremIndex!=m_siremContex_p->nScans) return -1;
     Peaks *etpPeaks1_p=0, *etpPeaks2_p=0;
     int nEtpBlocks;
+  
     try
         {
         //get the list of peaks from the magnitude
@@ -168,7 +168,7 @@ int SiremPeaks::getPeaksList()
             m_siremContex_p->magSenMax, m_siremContex_p->noiseLevel);
         m_nMagBlocks=m_magPeaks_p->get(0, m_siremContex_p->nScans-1); //#magnitude peaks
         if(m_nMagBlocks<=0) return -1; //no peaks in data
-        
+
         //get list of peaks from entropy
         etpPeaks1_p=new Peaks(m_siremCuts_p[0], m_siremContex_p->nScans, m_siremContex_p->etpSenMin, m_siremContex_p->etpSenMax, m_siremContex_p->etpSenMin);
         nEtpBlocks=etpPeaks1_p->get(0, m_siremContex_p->nScans-1); //#peaks from entropy
@@ -179,10 +179,12 @@ int SiremPeaks::getPeaksList()
         m_cnvPeaks2_p=new CONVOLVED_PEAKS[m_nMagBlocks];
         for(int i=0; i<m_nMagBlocks; i++)
             {m_cnvPeaks1_p[i].etpPeaks_p=0;  m_cnvPeaks2_p[i].etpPeaks_p=0;}
-
+           
+        
         //for each magnitude peak, associate the contained entropy peaks. The result is m_cnvPeaks1_p
         splitEtpPeaks(m_cnvPeaks1_p, m_magPeaks_p->m_mzIndex_p, m_nMagBlocks, etpPeaks1_p->m_mzIndex_p, nEtpBlocks);
-
+//      return(0);      
+        
         //get the list of peaks from the entropy.
         //Won't be useful if there is only one cut
         etpPeaks2_p=new Peaks(m_siremCuts_p[0], m_siremContex_p->nScans, m_siremContex_p->etpSenMin, m_siremContex_p->etpSenMax,
@@ -197,10 +199,9 @@ int SiremPeaks::getPeaksList()
 
     for(int cut=1; cut<m_siremContex_p->cutLevels.size; cut++)
         {
-        //sirem peaks are arranged with magnitude peaks
+      //sirem peaks are arranged with magnitude peaks
         etpPeaks2_p->setMagnitude(m_siremCuts_p[cut], m_siremContex_p->nScans); //sets the magnitudes of sirem to extract its peaks
         nEtpBlocks=etpPeaks2_p->get(0, m_siremContex_p->nScans-1); //peaks
-
         splitEtpPeaks(m_cnvPeaks2_p, m_magPeaks_p->m_mzIndex_p, m_nMagBlocks, etpPeaks2_p->m_mzIndex_p, nEtpBlocks); //sorting on m_cnvPeaks2_p
 
         //Possible new peaks (m_cnvPeaks2_p) are added to the previous unified list (m_cnvPeaks1_p)
@@ -250,25 +251,33 @@ int SiremPeaks::splitEtpPeaks(CONVOLVED_PEAKS *cnvPeaks_p, Peaks::ION_INDEX *mag
     //we look for the first entropy index located within the magnitude peak
     lastEtpPeak=-1;
     for(int i=0; i<nEtpPeaks; i++) //tour of entropy peaks
-        if(etpPeaks_p[i].low>=magPeaks_p[0].low) {lastEtpPeak=i; break; }
-
+      if(etpPeaks_p[i].max >= magPeaks_p[0].low && etpPeaks_p[i].max <= magPeaks_p[0].high)
+        {lastEtpPeak=i; break; }
     if(lastEtpPeak==-1) //no entropy peak is within the magnitude peak
-        {cnvPeaks_p[0].nEtpPeaks=0; nEtpPeaksConv=0;}
-
-    for(int mPeak=0; mPeak<nMagPeaks; mPeak++) //para todos los picos de magnitud
+        {cnvPeaks_p[0].nEtpPeaks=0;}
+    for(int mPeak=0; mPeak<nMagPeaks; mPeak++) //for all magnitude peaks
         {
-        nEtpPeaksConv=0;  //#entropy peaks
+        for(int i=lastEtpPeak; i<nEtpPeaks; i++) //tour of entropy peaks to find the first one into mPeak
+            if(etpPeaks_p[i].max >= magPeaks_p[mPeak].low && etpPeaks_p[i].max <= magPeaks_p[mPeak].high)
+            {lastEtpPeak=i; break;}
 
         cnvPeaks_p[mPeak].magPeaks.low =magPeaks_p[mPeak].low; //magnitude peak
         cnvPeaks_p[mPeak].magPeaks.max =magPeaks_p[mPeak].max;
         cnvPeaks_p[mPeak].magPeaks.high=magPeaks_p[mPeak].high;
 
+//        if(!hit) //if there are no entropy peaks either within or above this mag peak
+//        {cnvPeaks_p[mPeak].nEtpPeaks=0; continue;}
+        
         //number of entropy peaks in each magnitude peak
         cnvPeaks_p[mPeak].nEtpPeaks=0; //default.
+        nEtpPeaksConv=0;  //#entropy peaks
         totalPeaks++;
-
+        
         //in each magnitude peak there can be several entropy peaks, or none.
         //we look for those magnitude peaks that include several entropy peaks and count them
+        //si el pico de sirem coincide con el valle derecho   del pico de mag, no se incluye 
+        //si el pico de sirem coincide con el valle izquierdo del pico de mag, sí se incluye 
+        //se debe hacer un análisis más detallado
         for(ePeak=lastEtpPeak; ePeak<nEtpPeaks; ePeak++) //tour of entropy peaks
             {
             //if the maximum value of the entropy peak is contained in the magnitude peak
@@ -277,7 +286,7 @@ int SiremPeaks::splitEtpPeaks(CONVOLVED_PEAKS *cnvPeaks_p, Peaks::ION_INDEX *mag
             else if(etpPeaks_p[ePeak].max > magPeaks_p[mPeak].high) //outside the peak magnitude
                 break;
             }
-
+        
         //Entropy peaks are associated with each magnitude peak to which they correspond.
         //if two maxima are very close, the second is discarded. The tube effect is taken into account (small continuous increments)
         try
@@ -286,7 +295,6 @@ int SiremPeaks::splitEtpPeaks(CONVOLVED_PEAKS *cnvPeaks_p, Peaks::ION_INDEX *mag
                 {
                 //memory to accommodate all peaks plus a possible inserted
                 cnvPeaks_p[mPeak].etpPeaks_p=new Peaks::ION_INDEX [nEtpPeaksConv+1];
-
 
                 for(int i=0; i<nEtpPeaksConv; i++)
                     {
@@ -305,7 +313,6 @@ int SiremPeaks::splitEtpPeaks(CONVOLVED_PEAKS *cnvPeaks_p, Peaks::ION_INDEX *mag
                 cnvPeaks_p[mPeak].etpPeaks_p[0].high=magPeaks_p[mPeak].high;
                 cnvPeaks_p[mPeak].nEtpPeaks=1;
                 }
-
             lastEtpPeak+=nEtpPeaksConv; //base for each magnitude peak
             totalPeaks +=nEtpPeaksConv; //total peaks
             }
@@ -338,7 +345,7 @@ void SiremPeaks::analizeMagPeak(CONVOLVED_PEAKS *cnvPeaks_p, Peaks::ION_INDEX *m
         hit=false;
         for(int p=0; p<cnvPeaks_p[mPeak].nEtpPeaks; p++) //for all entropy peaks
             {
-            //if the maximum in magnitude is contained in the entropy peak
+          //if the maximum in magnitude is contained in the entropy peak
             if(cnvPeaks_p[mPeak].etpPeaks_p[p].low<magPeaks_p[mPeak].max && cnvPeaks_p[mPeak].etpPeaks_p[p].high>magPeaks_p[mPeak].max)
                 {hit=true; break;}
             }
@@ -353,7 +360,7 @@ void SiremPeaks::analizeMagPeak(CONVOLVED_PEAKS *cnvPeaks_p, Peaks::ION_INDEX *m
                 {
                 //neighboring peaks are identified
                 int pLeft=-1, pRight=-1;
-                for(int p=0; p<cnvPeaks_p[mPeak].nEtpPeaks; p++) //for all entropy peaks
+                for(int p=0; p<cnvPeaks_p[mPeak].nEtpPeaks; p++) //for all entropy peaks into mPeak
                     if(cnvPeaks_p[mPeak].etpPeaks_p[p].high<=magPeaks_p[mPeak].max) pLeft=p;
                     else if(cnvPeaks_p[mPeak].etpPeaks_p[p].low>=magPeaks_p[mPeak].max) {pRight=p; break;}
                 if(pLeft!=-1 && pRight==-1) //There are no entropy peaks to the right of the magnitude peak
@@ -365,8 +372,8 @@ void SiremPeaks::analizeMagPeak(CONVOLVED_PEAKS *cnvPeaks_p, Peaks::ION_INDEX *m
                     cnvPeaks_p[mPeak].etpPeaks_p[pLeft].high =magPeaks_p[mPeak].max+1; //expands to the right
                     cnvPeaks_p[mPeak].etpPeaks_p[pRight].low =magPeaks_p[mPeak].max-1; //expands to the left
                     }
-                /*
-                if(m_siremContex_p->vervose)
+                  /*             
+                  if(m_siremContex_p->vervose)
                     {
                     if(pLeft!=-1 && pRight==-1)
                         printf("...Ajustado [%d %d %d]\n", cnvPeaks_p[mPeak].etpPeaks_p[pLeft].low, cnvPeaks_p[mPeak].etpPeaks_p[pLeft].max, cnvPeaks_p[mPeak].etpPeaks_p[pLeft].high);
@@ -376,7 +383,8 @@ void SiremPeaks::analizeMagPeak(CONVOLVED_PEAKS *cnvPeaks_p, Peaks::ION_INDEX *m
                         printf("...Ajustados: [%d %d %d][%d %d %d]\n", cnvPeaks_p[mPeak].etpPeaks_p[pLeft].low, cnvPeaks_p[mPeak].etpPeaks_p[pLeft].max, cnvPeaks_p[mPeak].etpPeaks_p[pLeft].high,
                             cnvPeaks_p[mPeak].etpPeaks_p[pRight].low, cnvPeaks_p[mPeak].etpPeaks_p[pRight].max, cnvPeaks_p[mPeak].etpPeaks_p[pRight].high);
                     }
-                */
+                  */
+                
                 }
             }
         }

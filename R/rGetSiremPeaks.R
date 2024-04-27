@@ -41,7 +41,7 @@
 #'                      -> 1=TIC
 #'                      -> 2=RMS
 #'                      -> 3=MAX
-#' 
+#'    relativeMag       -> !=0: magnitudes in %
 #' @param initMass   Mass, in Daltons, corresponding to the first image to load.
 #' @param finalMass  Mass, in Daltons, corresponding to the last  image to load.
 #'
@@ -61,16 +61,33 @@ rGetSiremPeaks<-function(rMSIData, params, initMass, finalMass)
     {cat("Warning: the initial mass must be greather than", rMSIData$mass[1]); return(-1);}  
   if(finalMass>rMSIData$mass[length(rMSIData$mass)]) 
     {cat("Warning: the final mass must be less than or equal to", rMSIData$mass[length(rMSIData$mass)]); return(-1);}  
-  initMassIndex <-rGetIndexFromMass(rMSIData, initMass);   #index to the initial mass.
-  finalMassIndex<-rGetIndexFromMass(rMSIData, finalMass);  #index to the final mass.
+  initMassIndex <-rGetIndexFromMass(initMass, rMSIData$mass);   #index to the initial mass.
+  finalMassIndex<-rGetIndexFromMass(finalMass, rMSIData$mass);  #index to the final mass.
 
   size=finalMassIndex-initMassIndex+1;
   if(size<=0) {print("Warning: the final mass must be greater than the initial mass."); return(-1);}  
   #the images are obtained (in columns).
   
+  print("loading images..."); 
 #  images<-rMSI2::load_imzMLImages(rMSIData, initMass, size);
-  images<-rLoadImages(rMSIData, initMass, size);
 #  images<-rImzML::getImages(rMSIData, initMass, size);
+  
+# images<-rLoadImages(rMSIData, rMSIData$mass[initMassIndex+1], size);
+  
+#.....................................
+    load("/home/esteban/MALDI/rSirem/images_C30_700_900.RData");
+#  load("/home/esteban/MALDI/rSirem/images_C60_300_500.RData");
+#        load("/home/esteban/MALDI/rSirem/images_C120_300_500.RData");
+            init <-rGetIndexFromMass(700, rMSIData$mass);   #index to the initial mass.
+            newInit=initMassIndex-init;
+            newEnd=size+newInit;
+            if(newInit==0)  {newInit=1;}
+            images<-images[, newInit:newEnd-1];
+            size=ncol(images);
+ # .....................................
+  
+  msg<-sprintf("OK -> pixels:%d scans:%d", nrow(images), ncol(images));
+  print(msg);
   
   #images normalization as a percentage.
   maxValue=0;
@@ -80,9 +97,13 @@ rGetSiremPeaks<-function(rMSIData, params, initMass, finalMass)
         images[, scan]= images[, scan]/as.matrix(rMSIData$normalizations[, normalizationType]); 
       if(mean(images[,scan])>maxValue) maxValue=mean(images[,scan]);
     }
-  for(scan in 1:size)
-    images[,scan]=images[,scan]*100.0/maxValue;
-  
+
+  if(params$relativeMag!=0)
+    {
+    for(scan in 1:size)
+      images[,scan]=images[,scan]*100.0/maxValue;
+    }
+
   maxMean=0;
   maxMeanIndex=0;
   maxImage=0;
@@ -100,7 +121,8 @@ rGetSiremPeaks<-function(rMSIData, params, initMass, finalMass)
     #image normalization as a percentage.
     if(normalizationType!=0) #if normalization should be used.
         maxImage=maxImage/as.matrix(rMSIData$normalizations[, normalizationType]); 
-    maxImage=maxImage*100.0/mean(maxImage); 
+    if(params$relativeMag!=0)
+      maxImage=maxImage*100.0/mean(maxImage); 
     
     #sirem info + peaks are obtained.
     #1 is subtracted since coordinates starting at 0.0 are required.
@@ -118,7 +140,7 @@ rGetSiremPeaks<-function(rMSIData, params, initMass, finalMass)
   }
   
   #initial index to the total mass axis.
-  initMassIndex<-rGetIndexFromMass(rMSIData, initMass);
+  initMassIndex<-rGetIndexFromMass(initMass, rMSIData$mass);
   mzAxis=0;
   #Build the partial mass axis.
   mzAxis[1]=rMSIData$mass[initMassIndex];
@@ -129,34 +151,36 @@ rGetSiremPeaks<-function(rMSIData, params, initMass, finalMass)
   siremInfo <- list(siremPeaks=siremPeaksInfo, massAxis=mzAxis);
   return (siremInfo);
 }
+
 #' rGetIndexFromMass
 #' Returns the index to the full mass axis whose mass is closest to the given mass.
 #' The algorithm of successive approximations is used.
 #' @param rMSIData -> sample data obtained from the file with rMSI2::LoadMsiData().
 #' @param mass -> mass in Daltons
+#' 
 #' @return The index to mass if OK; -1 if KO
 #'  
 #' 
-rGetIndexFromMass<-function(rMSIData, mass)
+rGetIndexFromMass<-function(mass, massAxis)
 {
-  nMassPoints=length(rMSIData$mass); #total length of the mass axis.
-  if(nMassPoints==1){return (rMSIData$mass);}
+  nMassPoints=length(massAxis); #total length of the mass axis.
+  if(nMassPoints==1){return (massAxis);}
   
   #index search to the matching mass or higher.
   initMassIndex=0;
   for(i in 1:nMassPoints) 
-    if(rMSIData$mass[i]>=mass) {initMassIndex=i; break;}
+    if(massAxis[i]>=mass) {initMassIndex=i; break;}
   if(initMassIndex==0) {print("warning initMass out of range"); return -1;}
   
   #the index is updated to the nearest value.
-  if(rMSIData$mass[i]!=mass) 
+  if(massAxis[initMassIndex]!=mass) 
   {
-    if(initMassIndex+1 <= nMassPoints) 
-    {delta=rMSIData$mass[initMassIndex+1]-rMSIData$mass[initMassIndex];} #mass increase.
-    else 
-    {delta=rMSIData$mass[initMassIndex]-rMSIData$mass[initMassIndex-1];}
+#    if(initMassIndex+1 <= nMassPoints) 
+#    {delta=massAxis[initMassIndex+1]-massAxis[initMassIndex];} #mass increase.
+#    else 
+    {delta=massAxis[initMassIndex]-massAxis[initMassIndex-1];}
     
-    if(rMSIData$mass[initMassIndex]-mass>delta/2.0) {initMassIndex=initMassIndex-1;}
+    if(massAxis[initMassIndex]-mass>delta/2.0) {initMassIndex=initMassIndex-1;}
   }
   return (initMassIndex);
 }
@@ -172,7 +196,7 @@ rGetIndexFromMass<-function(rMSIData, mass)
 #' 
 rLoadImages<-function(rMSIData, initMass, size)
 {
-  initMassIndex<-rGetIndexFromMass(rMSIData, initMass); #index to the initial mass.
+  initMassIndex<-rGetIndexFromMass(initMass, rMSIData$mass); #index to the initial mass.
   
   slices<-seq(initMassIndex, initMassIndex+size-1, by=1); #images.
   #  imgMx <- rMSI2::load_imzMLImage(rMSIData, initMass, size); #load the matrix from file.

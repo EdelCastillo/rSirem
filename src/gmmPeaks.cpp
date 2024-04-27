@@ -177,9 +177,9 @@ int GmmPeaks::iniGMM()
 
                 //the limits of the Gaussian parameters are established:
                 //The minimum value for the mean is the minimum value of the peak ntropy
-                m_sGmm.limits[nGauss].minMean=etpLow-lowMzIndex;
+                m_sGmm.limits[nGauss].minMean=etpLow-lowMzIndex-2;
                 //The maximum value for the mean is the maximum value of the entropy peak
-                m_sGmm.limits[nGauss].maxMean=etpHigh-lowMzIndex;
+                m_sGmm.limits[nGauss].maxMean=etpHigh-lowMzIndex+2;
                 //The minimum value for sigma is made to be half a scan
                 float minSigma=0.5;
                 m_sGmm.limits[nGauss].minSigma=minSigma;

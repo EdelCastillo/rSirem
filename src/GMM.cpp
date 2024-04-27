@@ -47,10 +47,12 @@ int Cgmm::gmm(GMM_STRUCT *gmm)
         pxk_p[g]=new double[gmm->size];
         gmm->status[g]=0;
         }
-
+    double sumaYsqr=0;
     for(int iy=0; iy<gmm->size; iy++) //accumulated in magnitude
+        {
         sumaY+=gmm->y[iy];
-
+        sumaYsqr+=gmm->y[iy]*gmm->y[iy];
+        }
     while(true) //implementation of the EM algorithm (expectation-maximization)
     {
     //Espectation: probability that the variable x belongs to the Gaussian 'g'
@@ -158,9 +160,13 @@ int Cgmm::gmm(GMM_STRUCT *gmm)
         err=gmm->y[ix]-sumaPxp_p[ix]*gmm->yFactor;
         qErr+=err*err; //quadratic error
         }
-    qErr=sqrt(qErr/gmm->size);  //root mean square error
-    gmm->quality=1.0-qErr/sumaY;  //relative fit quality in magnitude
-
+    //qErr=sqrt(qErr/gmm->size);  //root mean square error
+    //gmm->quality=1.0-qErr/sumaY;  //relative fit quality in magnitude
+    if(sumaYsqr<1e-9)
+      gmm->quality=0;
+    else
+      gmm->quality=1.0-qErr/sumaYsqr;  //relative fit quality in magnitude
+    
     //free reserved memory
     if(sumaPxp_p) delete [] sumaPxp_p;
     for(int g=0; g<gmm->nGauss; g++)

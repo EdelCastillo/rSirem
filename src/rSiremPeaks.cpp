@@ -20,6 +20,8 @@
 #include <Rcpp.h>
 
 #include "siremPeaks.h"
+#include <time.h>
+#include <sys/time.h>    
 
 using namespace Rcpp;
 
@@ -60,7 +62,7 @@ List rSiremPeaks(NumericMatrix data, NumericMatrix pxCoord, List params, Numeric
   List retFalse=List::create(Named("ret")=-1);
   int nScan=data.ncol();
   int nPixels=data.nrow();
-
+  
   float *magnitudes_p=0;
   if(nScan<=0 || nPixels<=0)
     {printf("Warning: no data detected\n"); return retFalse;}
@@ -111,7 +113,7 @@ List rSiremPeaks(NumericMatrix data, NumericMatrix pxCoord, List params, Numeric
   {printf("warning: siremSensitivity must be within range [0:1]\n"); return retFalse;}
   siremPeaksInfo.etpSenMax   = etpSen[1];
   siremPeaksInfo.etpSenMin   = etpSen[0];
-  
+
   NumericVector magSen = as<NumericVector>(params["magSensitivity"]);
   if(magSen[0]<0)
   {printf("warning: magSensitivity must be within range [0:maxConcentration]\n"); return retFalse;}
@@ -187,13 +189,20 @@ List rSiremPeaks(NumericMatrix data, NumericMatrix pxCoord, List params, Numeric
         return retFalse;
       }
 
-      SiremPeaks siremPeaks(&siremPeaksInfo);//SIREM/Entropy & peaks class
+    SiremPeaks siremPeaks(&siremPeaksInfo);//SIREM/Entropy & peaks class
     GROUP_F nextScan;
 //  printf("nScan:%d px:%d\n", nScan, nPixels);
     
     //The images to be analyzed are launched (concentrations of one scan) and sirem is obtained.
+    int vez=1;
+    printf("Processing scans (%%):00 ");
+    struct timeval t_inicio, t_fin, t_dif;
+    struct timezone tz;
+    gettimeofday(&t_inicio, &tz);
+    
     for(int scan=0; scan<nScan; scan++)
         {
+        if((float)scan/(float)nScan>vez*0.1) {printf("%d ", vez*10); vez++;}
         for(int i=0; i<nPixels; i++)
           {
             magnitudes_p[i]=(float)data(i,scan);
@@ -202,10 +211,22 @@ List rSiremPeaks(NumericMatrix data, NumericMatrix pxCoord, List params, Numeric
         nextScan.size=nPixels;
         siremPeaks.newMz(&nextScan); //a new image for analysis. get sirem measures
         }
-
+    printf("100\n");
+    
+    //Tiempo de ejecución
+    gettimeofday(&t_fin, &tz);
+    if(t_inicio.tv_usec >t_fin.tv_usec)
+    {
+      t_fin.tv_usec+=1000000;
+      --t_fin.tv_sec;
+    }
+    t_dif.tv_sec=t_fin.tv_sec-t_inicio.tv_sec;
+    t_dif.tv_usec=t_fin.tv_usec-t_inicio.tv_usec;
+    printf("Clustering execution time: %ld/%ld/%ld (m/s/us)\n", t_dif.tv_sec/60, t_dif.tv_sec%60, t_dif.tv_usec);
+    
     if(siremPeaks.getPeaksList()<0)  //get peaks info
     {printf("Warning: there are no peaks in data.\n"); return  retFalse;}
-    
+
     int ncPeaks=siremPeaks.getCompoundPeakNumber(); //if there are no simple peak segments.
     if(ncPeaks<=0)
     {printf("Warning: there are no peaks in data.\n"); return retFalse;}
@@ -213,7 +234,9 @@ List rSiremPeaks(NumericMatrix data, NumericMatrix pxCoord, List params, Numeric
     //info on magnitudes averaged over each scan.
     NumericVector mag(nScan);
     for(int i=0; i<nScan; i++) //return average magnitudes
+    {
       mag[i]=siremPeaks.getMeanMagnitude(i);
+    }
 
     //sirem matrix: rows=scan; columns=cut level.
     NumericMatrix siremMx(nScan, siremPeaksInfo.cutLevels.size); //dimensioned.
@@ -223,7 +246,6 @@ List rSiremPeaks(NumericMatrix data, NumericMatrix pxCoord, List params, Numeric
       for(int i=0; i<nScan; i++)
         siremMx(i,cut)=cut_p[i]; //rows=scan; columns=cut level.
     }
-
     //info on composite magnitude peaks (united by their valleys).
     UNITED_PEAKS uPeaks; //peaks composed of simple concentration peaks.
     NumericMatrix cMagPeaks(ncPeaks, 2);
@@ -241,16 +263,18 @@ List rSiremPeaks(NumericMatrix data, NumericMatrix pxCoord, List params, Numeric
     int nEtp=0;
     for(int i=0; i<nMagPeaks; i++)
       nEtpPeaks+=siremPeaks.getEtpPeaksNumber(i); //number of sirem peaks.
-    
+
     //info of magnitude peaks and sirem peaks associated with each magnitude peak.
     NumericMatrix sPeaks(nEtpPeaks, 3), cSiremPeaks(nMagPeaks, 2);
     NumericMatrix magPeaks(nMagPeaks, 3);
+
     for(int i=0, k=0; i<nMagPeaks; i++)
       {
       peak=siremPeaks.getSingleMagPeak(i);
       magPeaks(i,0)=peak.low;  //low to peak magnitude ratio.
       magPeaks(i,1)=peak.max;  //index to maximum peak magnitude.
       magPeaks(i,2)=peak.high; //high ratio to peak magnitude.
+
       nEtp=siremPeaks.getEtpPeaksNumber(i);
       cSiremPeaks(i, 0)=k;        //sirem peaks low  associated with this magnitude peak
       cSiremPeaks(i, 1)=k+nEtp-1; //sirem peaks high associated with this magnitude peak

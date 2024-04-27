@@ -34,9 +34,9 @@ rGetSirem<-function(rMSIData, params, initMass, finalMass)
   {cat("Warning: the initial mass must be greather than", rMSIData$mass[1]); return(-1);}  
   if(finalMass>rMSIData$mass[length(rMSIData$mass)]) 
   {cat("Warning: the final mass must be less than or equal to", rMSIData$mass[length(rMSIData$mass)]); return(-1);}  
-  initMassIndex<-rSirem::rGetIndexFromMass(rMSIData, initMass); #index to the initial mass.
+  initMassIndex<-rSirem::rGetIndexFromMass(initMass, rMSIData$mass); #index to the initial mass.
   
-  finalMassIndex<-rSirem::rGetIndexFromMass(rMSIData, finalMass);  #index to the final mass.
+  finalMassIndex<-rSirem::rGetIndexFromMass(finalMass, rMSIData$mass);  #index to the final mass.
   
   size=finalMassIndex-initMassIndex+1;
   if(size<=0) {print("Warning: the final mass must be greater than the initial mass."); return(-1);}  

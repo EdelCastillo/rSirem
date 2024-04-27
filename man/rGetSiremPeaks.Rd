@@ -29,7 +29,8 @@ tileSide          -> number of side pixels of the square tile: 1(1x1), 2(2x2), 3
 normalization     -> 0=none
 -> 1=TIC
 -> 2=RMS
--> 3=MAX}
+-> 3=MAX
+relativeMag       -> !=0: magnitudes in \%}
 
 \item{initMass}{Mass, in Daltons, corresponding to the first image to load.}
 

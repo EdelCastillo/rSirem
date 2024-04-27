@@ -77,9 +77,10 @@ NumericMatrix rGmmPeaks(List data, NumericVector magnitudes, float minMeanPxMag,
     {
     magVec_p=new float[nMagVec]; //memory reservation.
     for(int i=0; i<nMagVec; i++)
+      {
       magVec_p[i]=(float)magnitudes[i]; //copy data (concentration).
+      }
     }
-    
     if(nMagPeaks>0)
     {
     cnvPeaks_p=new CONVOLVED_PEAKS[nMagPeaks]; //memory reservation.
@@ -144,8 +145,11 @@ NumericMatrix rGmmPeaks(List data, NumericVector magnitudes, float minMeanPxMag,
   colnames(ret)=CharacterVector({"mean", "sigma", "value"}); //column names.
   int gaussianIndex=0; //indices for each deconvolved Gaussian.
   float *mzAxis_p=0; //mass axis
+  int uPeaksBelowSNR=0;
   for(int uPeak=0; uPeak<uMagPeaksMx.nrow(); uPeak++)
     {
+    if(uMagPeaksMx(uPeak, 0)==-1) {uPeaksBelowSNR++; continue;}
+    
     int mPeakLow   =uMagPeaksMx(uPeak, 0);    //lower simple peak.
     int mPeakHigh  =uMagPeaksMx(uPeak, 1);    //upper simple peak.
     int lowMzIndex =magPeaksMx(mPeakLow, 0);  //lower mass index.
@@ -213,7 +217,7 @@ NumericMatrix rGmmPeaks(List data, NumericVector magnitudes, float minMeanPxMag,
   
     }
   }
-//  return ret;
+  printf("united peaks below SNR/total=%d/%d\n", uPeaksBelowSNR, uMagPeaksMx.nrow());
 
   //Reserved memory is released.
   if(meanMagVec_p) delete [] meanMagVec_p;
