@@ -625,3 +625,65 @@ rPlotSirem<-function(peaksInfo, minMz, maxMz)
   lines(xAxis, sirem*sFactor, type="p",col="blue",lwd=1); #sirem
   lines(xAxis, sirem*sFactor, type="l",col="green",lwd=2);
 }
+
+#' rPlotConcentration
+#' Presents an image with peaks concentration information.
+#' In red the magnitude curve.
+#' Blue circles indicate data.
+#'
+#' @param peakInfo: list returned from rGetSiremPeaks().
+#' @param minMz: minimun mz
+#' @param maxMz: maximun mz
+#'
+#' @export
+#' 
+rPlotConcentration<-function(rMSIData, pixel, minMz, maxMz)
+{
+  xAxisLogic=rMSIData$mass>=minMz & rMSIData$mass<=maxMz;
+  xAxis=rMSIData$mass[xAxisLogic];
+  yAxis=rMSIData$mean[xAxisLogic];
+  yFactor=100/max(yAxis);
+  yAxis=yAxis*yFactor;
+  #  indexIni=rGetIndexFromMass(minMz, )
+  if(length(xAxis)<2) {print("no data to draw"); return(-1);}
+  
+  nPoints<-length(xAxis); #number of original data on each axis.
+  minX<-xAxis[1];         #minimum value on the X axis.
+  maxX<-xAxis[nPoints];   #maximum value on the X axis.
+  if(nPoints<2) {print("no data to draw."); return(-1);}
+  
+  
+  if(pixel>0) # si interesa parte del espectro de un píxel específico
+  {
+    if(pixel>nrow(rMSIData$pos)) {print("Warning: pixel is out of range"); return(retFail);}
+    yAxis<-rGetPixelChunkSpectra(rMSIData, pixel, xAxis[1], length(xAxis));
+    #    yAxis<-yAxis[xAxisLogic];
+    
+    #yAxis=c(0,50,500,1000,2000,3500,4200,4000,2500,1900,2000,4000,8000,15000,20000,19000,14000,7500,3500,1000,100,0); #,0,0,0,0,0,0,50,450,1400,2700,3500,3400,2800,1500,500,100,0);   
+    #yAxis=c(0,100,1000,4000,8000,10000,9000,6500,6000,8000,11000,10000,7000,3000,500,100,0);
+    #yAxis=c(0,100,500,1500,3000,5000,7500,10500,14000,15000,13500,9500,5000,2000,500, 0);
+    
+    if(max(yAxis)>0)
+    {yFactor=100/max(yAxis);}
+    else
+      yFactor=0;
+    yAxis=yAxis*yFactor;
+  }
+  xSize=length(yAxis);
+  deltaX=(maxX-minX)/xSize;
+  xAxis=seq(minMz, minMz+deltaX*(xSize-1), deltaX);
+  
+  #Blue circles are drawn corresponding to the original data.
+  plot(xAxis, yAxis, type="p",col="blue",lwd=1, main="Deconvolution", xlab="mz(Daltons)", 
+       ylab="Concentration", las=1, col.axis="black");  
+  #  plot(xAxis, yAxis, type="l",col="blue",lwd=1, main="Deconvolution", xlab="mz(Daltons)", 
+  #       ylab="Concentration", las=1, col.axis="black");  
+  totalY=0; #used to represent the sum curve.
+  
+  legendY1=sprintf("concentration factor=%.4f", yFactor);
+  #  print(legendY1, legendY2);
+  #  legend("topleft", legend=c(legendY1, legendY2));
+  mtext(legendY1, side=3, adj=0);
+  
+  lines(xAxis, yAxis, type="l",col="red",lwd=2); #concentration
+}
