@@ -125,6 +125,7 @@ testPere   -> list from  rMSI2::LoadPeakMatrix() from rMSI2::processWizard()
 
 ### sirem_vs_rMSI2<-function(sample, SNR)
 >#### Generates statistical data with the deviations of rSIREM and rMSI2 with respect to a standard sample.
+> Valid for a particular case; not generalizable. Requires prior information.
 
 > **Description of the parameters:**
 ```
@@ -135,7 +136,55 @@ testPere   -> list from  rMSI2::LoadPeakMatrix() from rMSI2::processWizard()
 > For **example**:   
 > sirem_vs_rMSI2<-function("30k", 1);
 
+# Examples
+### Deconvolution of a peak over the m/z range 769.4 to 769.65
 
+> myData<-rMSI2::LoadMsiData("absolute_path_to_file_30k.imzML");
 
+> params<-list("algorithm"=0, "minMeanPxMag"=1, "minSectionDensity"=5, "noiseLevel"=100, "tileSide"=4, "referenceType"=1, "cutLevels"=c(50), 
+             "siremSensitivity"=c(0.0001, 0.05), "magSensitivity"=c(0.01, 1), "normalization"=0, "relativeMag"=0);
+             
+> siremPeaks_30k<-rGetSiremPeaks(myData, params, 769.4, 769.65);
+
+**On the overaged spectrum of all pixels.** 
+
+> gaussInfo_30k<-rGetGaussians(myData, siremPeaks_30k, 0, 1);   
+> rPlotDeconv(gaussInfo_30k)
+
+**About the 100 pixel spectrum.**  
+
+> gaussInfo_30k<-rGetGaussians(myData, siremPeaks_30k, 100, 1);   
+> rPlotDeconv(gaussInfo_30k)
+
+### Deviations from the pattern
+
+> myData<-rMSI2::LoadMsiData("absolute_path_to_file_120k.imzML");
+
+> params<-list("algorithm"=0, "minMeanPxMag"=1, "minSectionDensity"=5, "noiseLevel"=100, "tileSide"=4, "referenceType"=1, "cutLevels"=c(50), 
+             "siremSensitivity"=c(0.0001, 0.05), "magSensitivity"=c(0.01, 1), "normalization"=0, "relativeMag"=0);
+             
+> siremPeaks_120k<-rGetSiremPeaks(myData, params, 769.4, 769.65);
+
+> gaussInfo_120k<-rGetGaussians(myData, siremPeaks_120k, 0, 1);   
+
+> rPlotDeconv2(gaussInfo_30k, gaussInfo_120k)
+
+ **Include rMSI2 centroids**
+ 
+> After the peak matrix has been generated with rMSI2::processWizard():
+
+> rMSI2_peaks <- rMSI2::LoadPeakMatrix(file.path("absolute_path_to_folder", "merged-peakmatrix.pkmat"))
+
+> rPlotDeconv2(gaussInfo_30k, gaussInfo_120k, 769.4, 769.75, rMSI2_peaks$mass)
+
+### Quality tests
+
+> NOTE: For this test it is appropriate to deconvolve a wide range of masses.
+
+> fq<-fitQualitySiremDeconv(gaussInfo_120k, siremPeaks_30k, gaussInfo_30k)
+
+### Deconvolution information
+
+> pkD<-peaksDeconvolved(siremPeaks_30k, gaussInfo_30k)
 
 

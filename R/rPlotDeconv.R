@@ -343,14 +343,16 @@ rPlotDeconv2<-function(drawInfo1, drawInfo2, minMass=0, maxMass=0, rMSI2_peaks1=
     {
     minMass=minMass; 
     if(minMass<minMass1 & minMass<minMass2)
-    {print("minMass is out of range"); return(-1);}
+      {minMass=min(c(minMass1, minMass2));
+      print("warning: the low mass was update");}
     }
   if(maxMass==0) {maxMass=max(c(maxMass1, maxMass2));}
   else 
   {
     maxMass=maxMass; 
     if(maxMass>maxMass1 & maxMass>maxMass2)
-    {print("maxMass is out of range"); return(-1);}
+      {maxMass=max(c(maxMass1, maxMass2));
+    print("warning: the high mass was update");}
   }
   
   if(maxMass<=minMass) {print("mass range is wrong"); return(-1);}

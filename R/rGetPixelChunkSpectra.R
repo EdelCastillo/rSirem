@@ -27,7 +27,7 @@
 # A vector with the requested spectrum part.
 rGetPixelChunkSpectra<-function(rMSIData, pixel, initMass, size)
 {
-  initMassIndex<-rGetIndexFromMass(rMSIData, initMass); #index to the initial mass.
+  initMassIndex<-rGetIndexFromMass(initMass, rMSIData$mass); #index to the initial mass.
   
   mySpectra <- rMSI2::loadImgChunkFromIds(rMSIData, pixel); #loads the full spectrum from file.
 

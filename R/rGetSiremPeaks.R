@@ -166,7 +166,7 @@ rGetSiremPeaks<-function(rMSIData, params, initMass, finalMass)
 rGetIndexFromMass<-function(mass, massAxis)
 {
   nMassPoints=length(massAxis); #total length of the mass axis.
-  if(nMassPoints==1){return (massAxis);}
+  if(nMassPoints==1){return (1);}
   
   #index search to the matching mass or higher.
   initMassIndex=0;
