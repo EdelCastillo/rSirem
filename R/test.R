@@ -330,6 +330,135 @@ fitQualityPere<-function(reference, testPere, testSirem, refMinMag=1e-6, testMin
   return(deviation);
 }
 
+#' fitQualityPereSirem
+#' Aisla aquellos picos de rMSI2 y rSirem que comparten al mismo pico de alta resolución como más próximo
+#' Para ellos, se obtienen las desviaciones respecto al pico de alta resolución
+#' 
+#' @param reference  -> gaussians info from rGetGaussians() (high resolution)
+#' @param testPere   -> list from  rMSI2::LoadPeakMatrix() from rMSI2::processWizard()
+#' @param testSirem  -> gaussians info from rGetGaussians() (low resolution)
+#' @param refMinMag  -> mínima magnitud de picos para su consideración (high resolution)
+#' @param testMinMag -> mínima magnitud de picos para su consideración (low resolution)
+#' @param minMass    -> low  mass to analyze (Da)
+#' @param minMass    -> high mass to analyze (Da)
+#'
+#' @return a matrix with columns: "mzrMSI2", "mzRef", "ppm", "maxDev", "mzSirem", "mzRef", "ppm", "maxDev" 
+#'  mzrMSI2 -> mz from rMSI2 sample
+#'  mzRef   -> mz from high resolution sample
+#'  ppm     -> deviation from rMSI2 to high mz
+#'  maxDev -> '1' if greater than ppm of a scan; 2 if greater than 1.5 ppm of a scan
+#'  mzSirem -> mz from Sirem sample
+#'  mzRef   -> mz from high resolution sample
+#'  ppm     -> deviation from SIrem to high mz
+#'  maxDev -> '1' if greater than ppm of a scan; 2 if greater than 1.5 ppm of a scan
+#'  
+#' @export
+#' 
+fitQualityPereSirem<-function(reference, testPere, testSirem, refMinMag=1e-6, testMinMag=1e-6, minMass=0, maxMass=0)
+{
+  fail<-matrix(nrow=2, ncol=5);
+  nSingleTestPerePks=length(testPere$mass);
+  nSingleRefPks=length(reference$gaussians[,1]);
+  
+  colMeansPere<-colMeans(testPere$intensity);
+  
+  maxRefMag=max(reference$gaussians[,3]);
+  if(refMinMag>1e-6) refMinMag=maxRefMag*refMinMag/100;
+  maxTestMag=max(colMeansPere);
+  if(testMinMag>1e-6) testMinMag=maxTestMag*testMinMag/100;
+  
+  minMassPere=min(testPere$mass);
+  maxMassPere=max(testPere$mass);
+  
+  if(minMass==0 | minMass<minMassPere) minMass<-minMassPere;
+  if(maxMass==0 | maxMass>maxMassPere) maxMass<-maxMassPere;
+  
+  refGaussLogic=reference$gaussians[,1]>=minMass & reference$gaussians[,1]<=maxMass;
+  refGauss=reference$gaussians[,1][refGaussLogic];
+  
+  refMassLogic=reference$xAxis>=minMass & reference$xAxis<=maxMass;
+  refMass=reference$xAxis[refMassLogic];
+  
+  siremMassLogic=testSirem$xAxis>=minMass & testSirem$xAxis<=maxMass;
+  siremMass=testSirem$xAxis[siremMassLogic];
+  iMaxSirem=length(siremMass);
+  
+  siremGaussLogic=testSirem$gaussians[,1]>=minMass & testSirem$gaussians[,1]<=maxMass;
+  siremGauss=testSirem$gaussians[,1][siremGaussLogic];
+  
+  minMassRef=min(refMass);
+  maxMassRef=max(refMass);
+  
+  pereMass=testPere$mass;  
+  iMinMass=rGetIndexFromMass(minMassRef, testPere$mass);
+  iMaxMass=rGetIndexFromMass(maxMassRef, testPere$mass);
+  
+  deviation <-matrix(nrow = iMaxMass-iMinMass+1, ncol = 8);
+  iMatrix=1;
+#  for(iPk in 1:iMaxPere) #para cada pico del test
+  for(iPk in iMinMass:iMaxMass) #para cada pico del test
+    {
+    offset=0;
+    nearMassSirem<-nearestValue(pereMass[iPk], siremMass);
+    iNearMass=rGetIndexFromMass(nearMassSirem, siremMass);
+    
+    if(iNearMass>=iMaxSirem)
+    {testPPM=1e6*(siremMass[iMaxSirem]-siremMass[iMaxSirem-1])/siremMass[iMaxSirem-1];}
+    else
+    {testPPM=1e6*(siremMass[iNearMass+1]-siremMass[iNearMass])/siremMass[iNearMass];}
+    
+    rMSI2Mass=pereMass[iPk];
+    highResMassNearestPere<-nearestValue(rMSI2Mass, refGauss); #gaussiana highRes más próxima a Pere
+    
+    lowResMassNearestMSI2 <-nearestValue(rMSI2Mass, siremGauss); #gaussiana lowRes más próxima a Pere
+    highResMassNearestSirem<-nearestValue(lowResMassNearestMSI2, refGauss); #gaussiana highRes más próxima a Sirem
+    if(highResMassNearestSirem != highResMassNearestPere) next; #si se trata de gaussianas distintas
+    
+    lowResMassNearestHighResMass <-nearestValue(highResMassNearestPere, siremGauss);
+    
+    if(highResMassNearestPere==-1 | lowResMassNearestHighResMass==-1) {offset=-1;}
+    else 
+    {
+        offsetPere<-abs(rMSI2Mass-highResMassNearestPere);
+        offsetSirem<-abs(lowResMassNearestHighResMass-highResMassNearestPere)
+        }
+    ppmPere<-1e6*offsetPere/rMSI2Mass;
+    ppmSirem<-1e6*offsetSirem/lowResMassNearestHighResMass;
+    
+    deviation[iMatrix, 1]=rMSI2Mass;
+    deviation[iMatrix, 2]=highResMassNearestPere;
+    deviation[iMatrix, 3]=ppmPere;
+    
+    if(ppmPere>1.5*testPPM) 
+      {deviation[iMatrix, 4]=2; deviation[iMatrix, 3]=0;}
+    else if(ppmPere>testPPM) 
+      {deviation[iMatrix, 4]=1;}
+    else
+      {deviation[iMatrix, 4]=0;}
+
+    deviation[iMatrix, 5]=lowResMassNearestHighResMass;
+    deviation[iMatrix, 6]=highResMassNearestPere;
+    deviation[iMatrix, 7]=ppmSirem;
+    
+    if(ppmSirem>1.5*testPPM) 
+      {deviation[iMatrix, 8]=2; deviation[iMatrix, 7]=0;}
+    else if(ppmSirem>testPPM) 
+      {deviation[iMatrix, 8]=1;}
+    else
+      {deviation[iMatrix, 8]=0;}
+  iMatrix=iMatrix+1;
+  }
+  hist(deviation[, 3], main="Histogram of rMSI2 deviations", xlab="ppm", ylab="Frequency");
+  hist(deviation[, 7], main="Histogram of rSIREM deviations", xlab="ppm", ylab="Frequency");
+  #  title("rMSI2 deviations");
+  #  legend("topright", legend="SNR=1");
+  
+  colnames(deviation)<-c("mzrMSI2", "mzRef", "ppm", "maxDev", "mzSirem", "mzRef", "ppm", "maxDev")
+  return(deviation[1:iMatrix-1,]);
+}
+
+
+
 #' nearestValue
 #' Return the nearest value in data
 #' Algoritmo de aproximaciones sucesivas
@@ -746,6 +875,7 @@ sirem_vs_rMSI2<-function(sample, SNR)
   gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
   #desviaciones de masa de cada pico sobre el patrón
   fq_700_900_rMSI_snr  <-fitQualityPere       (gaussInfo120_700_900n10ns, rMSI2_snr,  gaussInfo)
+  fq_700_900_rMSI_SIREM_snr  <-fitQualityPereSirem (gaussInfo120_700_900n10ns, rMSI2_snr,  gaussInfo)
   fq_700_900_sirem_snr <-fitQualitySirem      (gaussInfo120_700_900n10ns, siremPeaks, gaussInfo)
   fq_700_900_sirem_snrD<-fitQualitySiremDeconv(gaussInfo120_700_900n10ns, siremPeaks, gaussInfo)
   #se eliminan de la matriz los picos deconvolucionados
@@ -765,6 +895,7 @@ sirem_vs_rMSI2<-function(sample, SNR)
   siremPeaks$siremPeaks$unitedMagnitudePeaks[,1][!goodUpeaks]=-1;
   gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
   fq_500_700_rMSI_snr  <-fitQualityPere       (gaussInfo120_500_700n10ns, rMSI2_snr,  gaussInfo)
+  fq_500_700_rMSI_SIREM_snr  <-fitQualityPereSirem (gaussInfo120_500_700n10ns, rMSI2_snr,  gaussInfo)
   fq_500_700_sirem_snr <-fitQualitySirem      (gaussInfo120_500_700n10ns, siremPeaks, gaussInfo)
   fq_500_700_sirem_snrD<-fitQualitySiremDeconv(gaussInfo120_500_700n10ns, siremPeaks, gaussInfo)
   #se eliminan de la matriz los picos deconvolucionados
@@ -782,6 +913,7 @@ sirem_vs_rMSI2<-function(sample, SNR)
   siremPeaks$siremPeaks$unitedMagnitudePeaks[,1][!goodUpeaks]=-1;
   gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
   fq_300_500_rMSI_snr  <-fitQualityPere       (gaussInfo120_300_500n10ns, rMSI2_snr,  gaussInfo)
+  fq_300_500_rMSI_SIREM_snr  <-fitQualityPereSirem (gaussInfo120_300_500n10ns, rMSI2_snr,  gaussInfo)
   fq_300_500_sirem_snr <-fitQualitySirem      (gaussInfo120_300_500n10ns, siremPeaks, gaussInfo)
   fq_300_500_sirem_snrD<-fitQualitySiremDeconv(gaussInfo120_300_500n10ns, siremPeaks, gaussInfo)
   #se eliminan de la matriz los picos deconvolucionados
@@ -802,6 +934,36 @@ sirem_vs_rMSI2<-function(sample, SNR)
   rMSI2Sd=sd(totalDiff_rMSI2)
   #presenta resultados
   msg<-sprintf("           total rMSI2  peaks=%5d; mean=%.4f; sigma=%.4f", length(totalDiff_rMSI2), rMSI2Mean, rMSI2Sd);
+  print(msg)
+  
+  #Resultados para rMSI2-rSIREM (desviaciones de rMSI2 en ppm)
+  #Se analizan picos de rMSI2 y de rSIREM que comparten picos de alta reesolución
+  #desviaciones para el rango de masas unificado (300:900 Da)  
+  totalDiff_rMSI2_SIREM_A<-c(fq_300_500_rMSI_SIREM_snr[,3], fq_500_700_rMSI_SIREM_snr[,3], fq_700_900_rMSI_SIREM_snr[,3])
+  #Histograma de las desviaciones
+  hist(totalDiff_rMSI2_SIREM_A, main="Histogram of rMSI2 vs rMSI2 A deviations", xlab="ppm", ylab="Frequency");
+  legendTxt<-sprintf("mz=300:900 Da\nsample=%s; SNR=%d", sample, SNR)
+  legend("topright", legend=legendTxt);
+  #valores medios y desviación estándar
+  rMSI2_SIREM_A_Mean=mean(totalDiff_rMSI2_SIREM_A)
+  rMSI2_SIREM_A_Sd=sd(totalDiff_rMSI2_SIREM_A)
+  #presenta resultados
+  msg<-sprintf("           total rMSI2_SIREM_A  peaks=%5d; mean=%.4f; sigma=%.4f", length(totalDiff_rMSI2_SIREM_A), rMSI2_SIREM_A_Mean, rMSI2_SIREM_A_Sd);
+  print(msg)
+  
+  #Resultados para rMSI2-rSIREM (desviaciones de rSIREM en ppm)
+  #Se analizan picos de rMSI2 y de rSIREM que comparten picos de alta reesolución
+  #desviaciones para el rango de masas unificado (300:900 Da)  
+  totalDiff_rMSI2_SIREM_B<-c(fq_300_500_rMSI_SIREM_snr[,7], fq_500_700_rMSI_SIREM_snr[,7], fq_700_900_rMSI_SIREM_snr[,7])
+  #Histograma de las desviaciones
+  hist(totalDiff_rMSI2_SIREM_B, main="Histogram of rMSI2_SIREM B deviations", xlab="ppm", ylab="Frequency");
+  legendTxt<-sprintf("mz=300:900 Da\nsample=%s; SNR=%d", sample, SNR)
+  legend("topright", legend=legendTxt);
+  #valores medios y desviación estándar
+  rMSI2_SIREM_B_Mean=mean(totalDiff_rMSI2_SIREM_B)
+  rMSI2_SIREM_B_Sd=sd(totalDiff_rMSI2_SIREM_B)
+  #presenta resultados
+  msg<-sprintf("           total rMSI2_SIREM_B  peaks=%5d; mean=%.4f; sigma=%.4f", length(totalDiff_rMSI2_SIREM_B), rMSI2_SIREM_B_Mean, rMSI2_SIREM_B_Sd);
   print(msg)
   
   #Resultados para los picos de rSirem descartando los picos deconvolucionados
