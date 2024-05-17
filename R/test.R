@@ -774,10 +774,11 @@ getUpeakGaussFromMass<-function(siremPeaks, gaussInfo, mass)
 }
 
 #' siremPeaksFilter
-#' Retorna un array indicando si el pico compuesto debe ser considerado o no
+#' Retorna un array indicando si el pico compuesto incluye a picos de rMSI2
 #' Sólo se consideran aquellos que contienen a un pico de rMSI
 #' @param siremPeaks -> sirem peaks, from rGetSiremPeaks()
 #' @param rMSIPeaks  -> rMSI2 peaks, from  rMSI2::LoadPeakMatrix() from rMSI2::processWizard()
+#' @return array indicando si el pico compuesto incluye a picos de rMSI2
 #' @export
 #' 
 siremPeaksFilter<-function(siremPeaks, rMSIPeaks)
@@ -785,22 +786,97 @@ siremPeaksFilter<-function(siremPeaks, rMSIPeaks)
   nUpeaks=length(siremPeaks$siremPeaks$unitedMagnitudePeaks[,1]);
   uPks=rep(FALSE, times=nUpeaks);
   
-  for(up in 1:nUpeaks)
+  for(up in 1:nUpeaks) #para cada pico compuesto
   {
-    uPkLow =siremPeaks$siremPeaks$unitedMagnitudePeaks[up, 1]+1;
-    uPkHigh=siremPeaks$siremPeaks$unitedMagnitudePeaks[up, 2]+1;
-    uLowPksDa =scans2Daltons(siremPeaks$siremPeaks$magnitudePeaks[uPkLow,  1]+1, siremPeaks$massAxis);
-    uHighPksDa=scans2Daltons(siremPeaks$siremPeaks$magnitudePeaks[uPkHigh, 3]+1, siremPeaks$massAxis);
+    uPkLow =siremPeaks$siremPeaks$unitedMagnitudePeaks[up, 1]+1; #índice a pico simple inferior
+    uPkHigh=siremPeaks$siremPeaks$unitedMagnitudePeaks[up, 2]+1; #índice a pico simple superior
+    #$magnitudePeaks[uPkLow,  1]+1=índice a masa (scan) inferior del pico simple
+    #$magnitudePeaks[uPkLow,  1]+1=índice a masa (scan) superior del pico simple
+    uLowPksDa =scans2Daltons(siremPeaks$siremPeaks$magnitudePeaks[uPkLow,  1]+1, siremPeaks$massAxis); #mz inferior
+    uHighPksDa=scans2Daltons(siremPeaks$siremPeaks$magnitudePeaks[uPkHigh, 3]+1, siremPeaks$massAxis); #mz superior
 
-    lowNearMass =nearestValue(uLowPksDa,  rMSIPeaks$mass);
-    highNearMass=nearestValue(uHighPksDa, rMSIPeaks$mass);
+    lowNearMass =nearestValue(uLowPksDa,  rMSIPeaks$mass); #mz de rMSI2 más próxima a mz inferior del pico compuesto
+    highNearMass=nearestValue(uHighPksDa, rMSIPeaks$mass); #mz de rMSI2 más próxima a mz superior del pico compuesto
+    #si mz de rMSI2 está contenida en el pico compuesto, se anota al pico compuesto
     if((lowNearMass  >=uLowPksDa & lowNearMass  <=uHighPksDa) | 
        (highNearMass >=uLowPksDa & highNearMass <=uHighPksDa))
-        {uPks[up]=TRUE;}
+      {uPks[up]=TRUE;}
   }
   return(uPks);
-  
 }
+
+#' siremPeaksFilter
+#' Retorna una matriz con los centroides de rMSI2 contenidos en los picos compuestos de rSIREM
+#' 
+#' @param siremPeaks -> sirem peaks, from rGetSiremPeaks()
+#' @param rMSIPeaks  -> rMSI2 peaks, from rMSI2::LoadPeakMatrix() from rMSI2::processWizard()
+#' @return una matriz con los centroides de rMSI2 contenidos en los picos compuestos de rSIREM
+#' columna 1   referencia al pico compuesto de rSIREM
+#' columna 2.. centroides de rMSI2
+#' @export
+#' 
+#' 
+rMSI2PeaksFilter<-function(siremPeaks, rMSIPeaks)
+{
+  nUpeaks=length(siremPeaks$siremPeaks$unitedMagnitudePeaks[,1]);
+  uPks=rep(FALSE, times=nUpeaks);
+  nRMSIpeaks=0; maxLength=0;
+  for(up in 1:nUpeaks) #para cada pico compuesto
+  {
+    uPkLow =siremPeaks$siremPeaks$unitedMagnitudePeaks[up, 1]+1; #índice a pico simple inferior
+    uPkHigh=siremPeaks$siremPeaks$unitedMagnitudePeaks[up, 2]+1; #índice a pico simple superior
+    #$magnitudePeaks[uPkLow,  1]+1=índice a masa (scan) inferior del pico simple
+    #$magnitudePeaks[uPkLow,  1]+1=índice a masa (scan) superior del pico simple
+    uLowPksDa =scans2Daltons(siremPeaks$siremPeaks$magnitudePeaks[uPkLow,  1]+1, siremPeaks$massAxis); #mz inferior
+    uHighPksDa=scans2Daltons(siremPeaks$siremPeaks$magnitudePeaks[uPkHigh, 3]+1, siremPeaks$massAxis); #mz superior
+    
+    lowNearMass =nearestValue(uLowPksDa,  rMSIPeaks$mass); #mz de rMSI2 más próxima a mz inferior del pico compuesto
+    highNearMass=nearestValue(uHighPksDa, rMSIPeaks$mass); #mz de rMSI2 más próxima a mz superior del pico compuesto
+    #si mz de rMSI2 está contenida en el pico compuesto, se anota al pico compuesto
+    if((lowNearMass  >=uLowPksDa & lowNearMass  <=uHighPksDa) | 
+       (highNearMass >=uLowPksDa & highNearMass <=uHighPksDa))
+      {
+      uPks[up]=TRUE;
+      logic=rMSIPeaks$mass>=lowNearMass & rMSIPeaks$mass<=highNearMass;
+      rMSImz=rMSIPeaks$mass[logic];
+      if(length(rMSImz)>maxLength) maxLength=length(rMSImz);
+      nRMSIpeaks=nRMSIpeaks+1;
+      }
+  }
+  matrixRMSI<-matrix(nrow=nRMSIpeaks, ncol=maxLength+1);
+  index=1;
+  for(up in 1:nUpeaks) #para cada pico compuesto
+  {
+    if(uPks[up]!=TRUE) next; #este pico compuesto de rSIREM no contiene picos de rMSI2
+    
+    uPkLow =siremPeaks$siremPeaks$unitedMagnitudePeaks[up, 1]+1; #índice a pico simple inferior
+    uPkHigh=siremPeaks$siremPeaks$unitedMagnitudePeaks[up, 2]+1; #índice a pico simple superior
+    #$magnitudePeaks[uPkLow,  1]+1=índice a masa (scan) inferior del pico simple
+    #$magnitudePeaks[uPkLow,  1]+1=índice a masa (scan) superior del pico simple
+    uLowPksDa =scans2Daltons(siremPeaks$siremPeaks$magnitudePeaks[uPkLow,  1]+1, siremPeaks$massAxis); #mz inferior
+    uHighPksDa=scans2Daltons(siremPeaks$siremPeaks$magnitudePeaks[uPkHigh, 3]+1, siremPeaks$massAxis); #mz superior
+    
+    lowNearMass =nearestValue(uLowPksDa,  rMSIPeaks$mass); #mz de rMSI2 más próxima a mz inferior del pico compuesto
+    highNearMass=nearestValue(uHighPksDa, rMSIPeaks$mass); #mz de rMSI2 más próxima a mz superior del pico compuesto
+    
+    #Se determinan los picos de rMSI2 dentro del pico compuesto de rSIREM
+    logic=rMSIPeaks$mass>=lowNearMass & rMSIPeaks$mass<=highNearMass;
+    rMSImz=rMSIPeaks$mass[logic];
+    matrixRMSI[index, 1]=up;
+    for(i in 1:length(rMSImz)) 
+      matrixRMSI[index, i+1]=rMSImz[i];
+    #Se añaden ceros en las masas ausentes
+    if(length(rMSImz)<maxLength)
+      {
+      tmp=seq(length(rMSImz)+1, maxLength);
+      for(i in tmp) 
+        matrixRMSI[index, i+1]=0;
+      }
+    index=index+1;
+  }
+  return(matrixRMSI);
+}
+
 
 #' scans2Daltons
 #' convierte un array de scans a Daltons
@@ -871,7 +947,7 @@ sirem_vs_rMSI2<-function(sample, SNR)
   goodUpeaks=siremPeaksFilter(siremPeaks, rMSI2_snr);
   #Se marcan los que no 'coinciden' para su descarte
   siremPeaks$siremPeaks$unitedMagnitudePeaks[,1][!goodUpeaks]=-1;
-  #Se obtienen las gausianas
+  #Se obtienen las gaussianas
   gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
   #desviaciones de masa de cada pico sobre el patrón
   fq_700_900_rMSI_snr  <-fitQualityPere       (gaussInfo120_700_900n10ns, rMSI2_snr,  gaussInfo)
@@ -938,7 +1014,8 @@ sirem_vs_rMSI2<-function(sample, SNR)
   
   #Resultados para rMSI2-rSIREM (desviaciones de rMSI2 en ppm)
   #Se analizan picos de rMSI2 y de rSIREM que comparten picos de alta reesolución
-  #desviaciones para el rango de masas unificado (300:900 Da)  
+  #desviaciones para el rango de masas unificado (300:900 Da) 
+  #desviaciones de rMSI2
   totalDiff_rMSI2_SIREM_A<-c(fq_300_500_rMSI_SIREM_snr[,3], fq_500_700_rMSI_SIREM_snr[,3], fq_700_900_rMSI_SIREM_snr[,3])
   #Histograma de las desviaciones
   hist(totalDiff_rMSI2_SIREM_A, main="Histogram of rMSI2 vs rMSI2 A deviations", xlab="ppm", ylab="Frequency");
@@ -954,6 +1031,7 @@ sirem_vs_rMSI2<-function(sample, SNR)
   #Resultados para rMSI2-rSIREM (desviaciones de rSIREM en ppm)
   #Se analizan picos de rMSI2 y de rSIREM que comparten picos de alta reesolución
   #desviaciones para el rango de masas unificado (300:900 Da)  
+  #desviaciones de rSIREM
   totalDiff_rMSI2_SIREM_B<-c(fq_300_500_rMSI_SIREM_snr[,7], fq_500_700_rMSI_SIREM_snr[,7], fq_700_900_rMSI_SIREM_snr[,7])
   #Histograma de las desviaciones
   hist(totalDiff_rMSI2_SIREM_B, main="Histogram of rMSI2_SIREM B deviations", xlab="ppm", ylab="Frequency");
