@@ -805,7 +805,64 @@ siremPeaksFilter<-function(siremPeaks, rMSIPeaks)
   return(uPks);
 }
 
-#' siremPeaksFilter
+#' siremPeaksFilterDeconv
+#' Retorna una matriz con los centroides de rMSI2 contenidos en los picos compuestos deconvolucionados de rSIREM
+#' 
+#' @param siremPeaks -> sirem peaks, from rGetSiremPeaks()
+#' @param rMSIPeaks  -> rMSI2 peaks, from rMSI2::LoadPeakMatrix() from rMSI2::processWizard()
+#' @return una matriz con los centroides de rMSI2 contenidos en los picos compuestos de rSIREM
+#' columna 1   referencia al pico compuesto de rSIREM
+#' columna 2.. centroides de rMSI2
+#' @export
+#' 
+#' 
+rMSI2PeaksFilterDeconv<-function(siremPeaks, gaussInfo, rMSIPeaks)
+{
+  peaksDec<-peaksDeconvolved(siremPeaks, gaussInfo);
+  nUpeaks=length(peaksDec$gaussMassMatrix[,1]);
+  uPks=rep(FALSE, times=nUpeaks);
+  nRMSIpeaks=0; maxLength=0;
+  for(up in 1:nUpeaks) #para cada pico compuesto
+  {
+    uLowPksDa =peaksDec$gaussMassMatrix[up, 2];
+    uHighPksDa=peaksDec$gaussMassMatrix[up, 3];
+    lowNearMass =nearestValue(uLowPksDa,  rMSIPeaks$mass); #mz de rMSI2 más próxima a mz inferior del pico compuesto
+    highNearMass=nearestValue(uHighPksDa, rMSIPeaks$mass); #mz de rMSI2 más próxima a mz superior del pico compuesto
+    #si mz de rMSI2 está contenida en el pico compuesto, se anota al pico compuesto
+    if((lowNearMass  >=uLowPksDa & lowNearMass  <=uHighPksDa) | 
+       (highNearMass >=uLowPksDa & highNearMass <=uHighPksDa))
+    {
+      uPks[up]=TRUE;
+      logic=rMSIPeaks$mass>=lowNearMass & rMSIPeaks$mass<=highNearMass;
+      rMSImz=rMSIPeaks$mass[logic];
+      if(length(rMSImz)>maxLength) maxLength=length(rMSImz);
+      nRMSIpeaks=nRMSIpeaks+1;
+    }
+  }
+  matrixRMSI<-matrix(nrow=nRMSIpeaks, ncol=maxLength+2);
+  index=1;
+  for(up in 1:nUpeaks) #para cada pico compuesto
+  {
+    if(uPks[up]!=TRUE) next;
+    uLowPksDa =peaksDec$gaussMassMatrix[up, 2];
+    uHighPksDa=peaksDec$gaussMassMatrix[up, 3];
+    
+    lowNearMass =nearestValue(uLowPksDa,  rMSIPeaks$mass); #mz de rMSI2 más próxima a mz inferior del pico compuesto
+    highNearMass=nearestValue(uHighPksDa, rMSIPeaks$mass); #mz de rMSI2 más próxima a mz superior del pico compuesto
+    
+    #Se determinan los picos de rMSI2 dentro del pico compuesto de rSIREM
+    logic=rMSIPeaks$mass>=lowNearMass & rMSIPeaks$mass<=highNearMass;
+    rMSImz=rMSIPeaks$mass[logic];
+    matrixRMSI[index, 1]=peaksDec$gaussMassMatrix[up, 1];
+    matrixRMSI[index, 2]=length(rMSImz);
+    for(i in 1:length(rMSImz)) 
+      matrixRMSI[index, i+2]=rMSImz[i];
+    index=index+1;
+  }
+  return(matrixRMSI);
+}
+
+#' rMSI2PeaksFilter
 #' Retorna una matriz con los centroides de rMSI2 contenidos en los picos compuestos de rSIREM
 #' 
 #' @param siremPeaks -> sirem peaks, from rGetSiremPeaks()
@@ -843,7 +900,7 @@ rMSI2PeaksFilter<-function(siremPeaks, rMSIPeaks)
       nRMSIpeaks=nRMSIpeaks+1;
       }
   }
-  matrixRMSI<-matrix(nrow=nRMSIpeaks, ncol=maxLength+1);
+  matrixRMSI<-matrix(nrow=nRMSIpeaks, ncol=maxLength+2);
   index=1;
   for(up in 1:nUpeaks) #para cada pico compuesto
   {
@@ -863,20 +920,14 @@ rMSI2PeaksFilter<-function(siremPeaks, rMSIPeaks)
     logic=rMSIPeaks$mass>=lowNearMass & rMSIPeaks$mass<=highNearMass;
     rMSImz=rMSIPeaks$mass[logic];
     matrixRMSI[index, 1]=up;
+    matrixRMSI[index, 2]=length(rMSImz);
     for(i in 1:length(rMSImz)) 
-      matrixRMSI[index, i+1]=rMSImz[i];
-    #Se añaden ceros en las masas ausentes
-    if(length(rMSImz)<maxLength)
-      {
-      tmp=seq(length(rMSImz)+1, maxLength);
-      for(i in tmp) 
-        matrixRMSI[index, i+1]=0;
-      }
+      matrixRMSI[index, i+2]=rMSImz[i];
     index=index+1;
   }
   return(matrixRMSI);
 }
-
+  
 
 #' scans2Daltons
 #' convierte un array de scans a Daltons
@@ -917,22 +968,22 @@ sirem_vs_rMSI2<-function(sample, SNR)
 {
   library(rSirem)
   if(SNR!=1 & SNR!=2 & SNR!=3 & SNR!=5 & SNR!=7) {print("Warning: unknown SNR; expected:1,2,3,5,7");  return();}
-  load("/home/esteban/MALDI/rSirem/C120_all.RData")
+  load("/home/esteban/MALDI/rSirem_local/C120_all.RData")
   if(sample=="C60k")
     {
     #carga ficheros con los rangos de masas para la muestra de 60k
-    load("/home/esteban/MALDI/rSirem/C60_all.RData")
+    load("/home/esteban/MALDI/rSirem_local/C60_all.RData")
     #carga info sobre la muestra
-    myData<-rMSI2::LoadMsiData("/media/esteban/disk_1TB/esteban/MALDI/Samples/Cerebellum_30_60_120k/NoAlineado/C_60k/231211_Au_P_MBr_cblm_60k.imzML");
+    myData<-rMSI2::LoadMsiData("/mnt2/MALDI/Cerebellum_30_60_120k/NoAlineado/C_60k/231211_Au_P_MBr_cblm_60k.imzML");
     #carga la matriz de picos generada por rMSI2
-    peakMatrixPath<-sprintf("/media/esteban/disk_1TB/esteban/MALDI/Samples/Cerebellum_30_60_120k/Alineado/C_60k_SNR%d", SNR)
+    peakMatrixPath<-sprintf("/mnt2/MALDI/Cerebellum_30_60_120k/Alineado/C_60k_SNR%d", SNR)
     rMSI2_snr <- rMSI2::LoadPeakMatrix(file.path(peakMatrixPath, "merged-peakmatrix.pkmat"))
     }
   else if(sample=="C30k")
     {
-    load("/home/esteban/MALDI/rSirem/C30_all.RData")
-    myData<-rMSI2::LoadMsiData("/media/esteban/disk_1TB/esteban/MALDI/Samples/Cerebellum_30_60_120k/NoAlineado/C_30k/231211_Au_P_MBr_cblm_30k.imzML");
-    peakMatrixPath<-sprintf("/media/esteban/disk_1TB/esteban/MALDI/Samples/Cerebellum_30_60_120k/Alineado/C_30k_SNR%d", SNR)
+    load("/home/esteban/MALDI/rSirem_local/C30_all.RData")
+    myData<-rMSI2::LoadMsiData("/mnt2/MALDI/Cerebellum_30_60_120k/NoAlineado/C_30k/231211_Au_P_MBr_cblm_30k.imzML");
+    peakMatrixPath<-sprintf("/mnt2/MALDI/Cerebellum_30_60_120k/Alineado/C_30k_SNR%d", SNR)
     rMSI2_snr <- rMSI2::LoadPeakMatrix(file.path(peakMatrixPath, "merged-peakmatrix.pkmat"))
     }
   else {print("Warning: unknown sample");  return();}
@@ -943,12 +994,18 @@ sirem_vs_rMSI2<-function(sample, SNR)
     {siremPeaks<-siremPeaks30_700_900n10s0;} #fichero de picos de sirem
   else if(sample=="C60k")
     {siremPeaks<-siremPeaks60_700_900n10s0;}
-  #Se extraen los picos de sirem 'coincidentes' con los de rMSI2
+  
+  #centroides de rMSI2 contenidos en picos compuestos deconvolucionados de rSIREM
+  gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1); #gausianas (luego se alteran)
+  rMSI2_rSIREM_700_900_snr <-rMSI2PeaksFilterDeconv(siremPeaks, gaussInfo, rMSI2_snr)
+  
+  #Se extraen los picos unidos de sirem que incluyen a algún centroide de rMSI2
   goodUpeaks=siremPeaksFilter(siremPeaks, rMSI2_snr);
-  #Se marcan los que no 'coinciden' para su descarte
+  #Se marcan los picos unidos que no incluyen a ningún centroide de rMSI2, para su descarte
   siremPeaks$siremPeaks$unitedMagnitudePeaks[,1][!goodUpeaks]=-1;
-  #Se obtienen las gaussianas
+  #Se obtienen las gaussianas de los picos no descartados
   gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
+  
   #desviaciones de masa de cada pico sobre el patrón
   fq_700_900_rMSI_snr  <-fitQualityPere       (gaussInfo120_700_900n10ns, rMSI2_snr,  gaussInfo)
   fq_700_900_rMSI_SIREM_snr  <-fitQualityPereSirem (gaussInfo120_700_900n10ns, rMSI2_snr,  gaussInfo)
@@ -964,12 +1021,18 @@ sirem_vs_rMSI2<-function(sample, SNR)
   
   #para el rango de masa de 500 a 700 Da
   if(sample=="C30k")
-  {siremPeaks<-siremPeaks30_500_700n10s0;}
+    {siremPeaks<-siremPeaks30_500_700n10s0;}
   else if(sample=="C60k")
-  {siremPeaks<-siremPeaks60_500_700n10s0;}
+    {siremPeaks<-siremPeaks60_500_700n10s0;}
+  
+  #centroides de rMSI2 contenidos en picos compuestos deconvolucionados de rSIREM
+  gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
+  rMSI2_rSIREM_500_700_snr <-rMSI2PeaksFilterDeconv(siremPeaks, gaussInfo, rMSI2_snr)
+  
   goodUpeaks=siremPeaksFilter(siremPeaks, rMSI2_snr);
   siremPeaks$siremPeaks$unitedMagnitudePeaks[,1][!goodUpeaks]=-1;
   gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
+  
   fq_500_700_rMSI_snr  <-fitQualityPere       (gaussInfo120_500_700n10ns, rMSI2_snr,  gaussInfo)
   fq_500_700_rMSI_SIREM_snr  <-fitQualityPereSirem (gaussInfo120_500_700n10ns, rMSI2_snr,  gaussInfo)
   fq_500_700_sirem_snr <-fitQualitySirem      (gaussInfo120_500_700n10ns, siremPeaks, gaussInfo)
@@ -982,12 +1045,18 @@ sirem_vs_rMSI2<-function(sample, SNR)
   
   #para el rango de masa de 300 a 500 Da
   if(sample=="C30k")
-  {siremPeaks<-siremPeaks30_300_500n10s0;}
+    {siremPeaks<-siremPeaks30_300_500n10s0;}
   else if(sample=="C60k")
-  {siremPeaks<-siremPeaks60_300_500n10s0;}
+    {siremPeaks<-siremPeaks60_300_500n10s0;}
+  
+  #centroides de rMSI2 contenidos en picos compuestos deconvolucionados de rSIREM
+  gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
+  rMSI2_rSIREM_300_500_snr <-rMSI2PeaksFilterDeconv(siremPeaks, gaussInfo, rMSI2_snr)
+  
   goodUpeaks=siremPeaksFilter(siremPeaks, rMSI2_snr);
   siremPeaks$siremPeaks$unitedMagnitudePeaks[,1][!goodUpeaks]=-1;
   gaussInfo<-rGetGaussians(myData, siremPeaks, 0, 0.1);
+  
   fq_300_500_rMSI_snr  <-fitQualityPere       (gaussInfo120_300_500n10ns, rMSI2_snr,  gaussInfo)
   fq_300_500_rMSI_SIREM_snr  <-fitQualityPereSirem (gaussInfo120_300_500n10ns, rMSI2_snr,  gaussInfo)
   fq_300_500_sirem_snr <-fitQualitySirem      (gaussInfo120_300_500n10ns, siremPeaks, gaussInfo)
