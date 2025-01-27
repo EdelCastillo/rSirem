@@ -138,7 +138,8 @@ int GmmPeaks::iniGMM()
     m_sGmm.size=mzSize+2; //data size increased by two
     nGauss=0; //num of gausianas
     int iCount=-1;
-
+    m_nDeconv=0;
+    
     //in each single magnitude peak there may be several entropy peaks, or none.
     //are made to fit within the limits of the peak magnitude
     for(int peak=lowPeakIndex; peak<=highPeakIndex; peak++)
@@ -149,7 +150,7 @@ int GmmPeaks::iniGMM()
             //for each entropy peak the information is prepared for the GMM algorithm
             for(int i=0; i<m_cnvPeaks_p[peak].nEtpPeaks; i++)
                 {
-                iCount++;
+                iCount++; m_nDeconv++;
                 etpPeak_p=&m_cnvPeaks_p[peak].etpPeaks_p[i]; //pointer to simple peak entropy info
 
                 //the low and high limits of the entropy peak are adjusted if it is not completely contained in the magnitude peak
@@ -216,6 +217,7 @@ int GmmPeaks::iniGMM()
             m_sGmm.limits[nGauss].maxWeight=1;
             m_etpHits=1;
             nGauss=1;
+            m_nDeconv++;
             }
         }
     m_sGmm.maxIter=nGauss*40; //maximum iterations for adjustment in GMM
@@ -226,6 +228,7 @@ int GmmPeaks::iniGMM()
 //From a compound magnitude peak and its entropy peaks,
 //obtains the Gaussians that compose it: EM Algorithm
 //establishes the array m_deconv_p[] with m_nDeconv elements with info of each Gaussian ordered from lowest to highest mass
+//if an element of m_deconv_p[] has its values null -> non-deconvolved entropy peak.
 //If a peak could not be deconvolved, only one structure appears, its field nGauss=0 and its field quality=-1.
 //The mean and sigma information of the Gaussians is in units of scans
 //return:
@@ -248,6 +251,7 @@ int GmmPeaks::gmmDeconvolution()
         {
         m_sGmm.quality=-1;
         nGauss=0; //a structure appears in the file without deconvolution info
+        m_nDeconv=0;
         }
     else   //if gaussian number>DECONV_MAX_GAUSSIAN;
         return -1;
@@ -264,14 +268,15 @@ int GmmPeaks::gmmDeconvolution()
     if(m_deconv_p) {delete [] m_deconv_p; m_deconv_p=0;} //old memory is released
     try
         {
-        m_deconv_p=new GAUSSIAN[nGauss];   //new memory is reserved
+        m_deconv_p=new GAUSSIAN[m_nDeconv];   //new memory is reserved
+        //m_deconv_p=new GAUSSIAN[nGauss];   //new memory is reserved
         }
     catch(const std::bad_alloc& e)
         {
         printf("Error reserving memory: %s\n",e.what());
         return -1;
         }
-    m_nDeconv=nGauss;
+    //m_nDeconv=nGauss;
 
     int lowMzIndex, highMzIndex;
     lowMzIndex =m_cnvPeaks_p[0].magPeaks.low;       //index at lower mz
@@ -279,17 +284,34 @@ int GmmPeaks::gmmDeconvolution()
     if(highMzIndex<=lowMzIndex)                     //limit control
             {lowMzIndex=0; highMzIndex =0;}
 
-    //guarda info de deconvolución
-    for(int g=0; g<nGauss; g++)
+    //saves deconvolution info.
+    //m_sGmm returns the constructed Gaussians but this function returns all of them; 
+    //that is to say not all entropy peaks may generate Gaussians. Those who don't
+    //they set all their values to zero
+//    for(int g=0; g<nGauss; g++)
+    for(int g=0, k=0; g<m_nDeconv; g++)
+      {
+      if((m_etpHits|=((unsigned long)1<<g))!=0)          //if the gaussian exist
         {
-        m_deconv_p[g].mean=m_sGmm.params[g].mean;       //mean value
-        m_deconv_p[g].sigma=m_sGmm.params[g].sigma;     //standard deviation
-        m_deconv_p[g].weight=m_sGmm.params[g].weight;   //weighted weight
+        m_deconv_p[g].mean=m_sGmm.params[k].mean;       //mean value
+        m_deconv_p[g].sigma=m_sGmm.params[k].sigma;     //standard deviation
+        m_deconv_p[g].weight=m_sGmm.params[k].weight;   //weighted weight
         m_deconv_p[g].yFactor=m_sGmm.yFactor;           //factor for reconstruction
+        k++;
         }
+      else
+        {
+        m_deconv_p[g].mean=0;       
+        m_deconv_p[g].sigma=0;     
+        m_deconv_p[g].weight=0;   
+        m_deconv_p[g].yFactor=0;           
+        }
+      }
+      
     m_quality=m_sGmm.quality;           //fit quality
-
-return nGauss; //all good
+    
+//return nGauss; //all good
+return m_nDeconv; //all good
 }
 
 //unit conversion.

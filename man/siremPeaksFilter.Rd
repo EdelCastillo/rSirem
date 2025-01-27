@@ -3,7 +3,7 @@
 \name{siremPeaksFilter}
 \alias{siremPeaksFilter}
 \title{siremPeaksFilter
-Retorna un array indicando si el pico compuesto debe ser considerado o no
+Retorna un array indicando si el pico compuesto incluye a picos de rMSI2
 Sólo se consideran aquellos que contienen a un pico de rMSI}
 \usage{
 siremPeaksFilter(siremPeaks, rMSIPeaks)
@@ -13,8 +13,11 @@ siremPeaksFilter(siremPeaks, rMSIPeaks)
 
 \item{rMSIPeaks}{-> rMSI2 peaks, from  rMSI2::LoadPeakMatrix() from rMSI2::processWizard()}
 }
+\value{
+array indicando si el pico compuesto incluye a picos de rMSI2
+}
 \description{
 siremPeaksFilter
-Retorna un array indicando si el pico compuesto debe ser considerado o no
+Retorna un array indicando si el pico compuesto incluye a picos de rMSI2
 Sólo se consideran aquellos que contienen a un pico de rMSI
 }

@@ -58,13 +58,14 @@ NumericMatrix rGmmPeaks(List data, NumericVector magnitudes, float minMeanPxMag,
   float*magVec_p=0; //hosts the information on magnitudes (concentrations).
   float*meanMagVec_p=0; //hosts the averaged information of magnitudes (concentrations).
   int nMagPeaks=magPeaksMx.nrow(); //number of magnitude peaks.
+  int nSiremPeaks=siremPeaksMx.nrow(); //number of magnitude peaks.
   CONVOLVED_PEAKS  *cnvPeaks_p=0; //hosts all the peak information.
   int nMeanMagVec=meanMagVec.size(); //vector size.
   int nMagVec=magnitudes.size(); //concentration data size.
-   
+  
   try
   {
-
+    //si existe el vector de valores promediados y se desea usar los valores promediados
     if(nMeanMagVec>0 && nMagVec==0)
     {
     meanMagVec_p=new float[nMeanMagVec]; //memory reservation.
@@ -72,7 +73,7 @@ NumericMatrix rGmmPeaks(List data, NumericVector magnitudes, float minMeanPxMag,
       meanMagVec_p[i]=(float)meanMagVec[i]; //copy data (mean of concentrations).
        
     }
-
+    //Si se da el vector de magnitudes a usar
     if(nMagVec>0)
     {
     magVec_p=new float[nMagVec]; //memory reservation.
@@ -81,7 +82,8 @@ NumericMatrix rGmmPeaks(List data, NumericVector magnitudes, float minMeanPxMag,
       magVec_p[i]=(float)magnitudes[i]; //copy data (concentration).
       }
     }
-    if(nMagPeaks>0)
+    
+    if(nMagPeaks>0) //Si existen picos
     {
     cnvPeaks_p=new CONVOLVED_PEAKS[nMagPeaks]; //memory reservation.
     for(int mp=0; mp<nMagPeaks; mp++) //initialization.
@@ -141,11 +143,22 @@ NumericMatrix rGmmPeaks(List data, NumericVector magnitudes, float minMeanPxMag,
   GAUSSIAN deconvIn, deconvOut, *deconv_p; //if it is required to adapt the mass axis.
   deconv_p=&deconvIn;
   
-  NumericMatrix ret(siremPeaksMx.nrow(), 3); //the results matrix is created and sized.
+  NumericMatrix ret(nSiremPeaks, 3); //the results matrix is created and sized.
   colnames(ret)=CharacterVector({"mean", "sigma", "value"}); //column names.
-  int gaussianIndex=0; //indices for each deconvolved Gaussian.
+  int gaussIndex=0; //indices for each deconvolved Gaussian.
   float *mzAxis_p=0; //mass axis
   int uPeaksBelowSNR=0;
+
+  bool unitConver=false; //true If a change of units should be made(scans to Daltons)
+  if(mzAxis.size()>0) //if the vector for unit conversion exists.
+  {
+    unitConver=true;
+    mzAxis_p=new float[mzAxis.size()];
+    for(int i=0; i<mzAxis.size(); i++)
+      mzAxis_p[i]=(float)mzAxis(i);
+  }
+//  for(int uPeak=0; uPeak<0; uPeak++)
+  bool hit=false;
   for(int uPeak=0; uPeak<uMagPeaksMx.nrow(); uPeak++)
     {
     if(uMagPeaksMx(uPeak, 0)==-1) {uPeaksBelowSNR++; continue;}
@@ -181,43 +194,39 @@ NumericMatrix rGmmPeaks(List data, NumericVector magnitudes, float minMeanPxMag,
     //The Gaussians are formed whose sum reproduces the magnitude peaks.
    if(gmmPeaks.gmmDeconvolution()<0) //deconvolution
       {
-      printf("ERROR: limits exceeded. The aim is to deconvolve a peak composed of more than %d Gaussians.\n", DECONV_MAX_GAUSSIAN);
+      //printf("ERROR: limits exceeded. The aim is to deconvolve a peak composed of more than %d Gaussians.\n", DECONV_MAX_GAUSSIAN);
       return retFail;
       }
-    bool unitConver=false; //true If a change of units should be made(scans to Daltons)
 
-    if(mzAxis.size()>0) //if the vector for unit conversion exists.
-    {
-      unitConver=true;
-      mzAxis_p=new float[mzAxis.size()];
-      for(int i=0; i<mzAxis.size(); i++)
-        mzAxis_p[i]=(float)mzAxis(i);
-    }
     if(unitConver && (mzAxis.size()!=nMeanMagVec)) //if the dimensions are not correct.
-      {printf("warning: the dimensions of mzAxis and data[magnitudes] must match.\n"); return retFail;}
-
-    //info of Gaussians, adapted in magnitude, that make up the segment of simple magnitude peaks.
-    for(int i=0; i<gmmPeaks.getDeconvNumber(); i++)
-    {
-      deconvIn=gmmPeaks.getDeconv(i); //get a gaussian.
-      if(unitConver)
       {
+      //printf("warning: the dimensions of mzAxis and data[magnitudes] must match.\n"); 
+      return retFail;}
+//printf("uPeak:%d #uPeak:%d SiremPeaks:%d ", uPeak, gmmPeaks.getDeconvNumber(), nSiremPeaks);
+    
+    //info of Gaussians, adapted in magnitude, that make up the segment of simple magnitude peaks.
+    for(int g=0; g<gmmPeaks.getDeconvNumber(); g++)
+    {
+      deconvIn=gmmPeaks.getDeconv(g); //get a gaussian.
+      if(deconvIn.mean!=0 && unitConver)
+        {
         gmmPeaks.gaussConversion(&deconvIn, &deconvOut, mzAxis_p+lowMzIndex, nMeanMagVec); //unit conversion (scans to Daltos).
         deconv_p=&deconvOut;
-      }
+        }  
       else
-      {
+        {
         deconv_p=&deconvIn;
-      }
+        }
       //the Gaussians are returned.
-      ret(gaussianIndex, 0)=(double)deconv_p->mean;
-      ret(gaussianIndex, 1)=(double)deconv_p->sigma;
-      ret(gaussianIndex, 2)=(double)deconv_p->yFactor*deconv_p->weight;
-      gaussianIndex++;
-  
+      if(gaussIndex>=nSiremPeaks) {printf("warning: memory overflow for gaussians (max=%d)\n",nSiremPeaks); hit=true; break;}
+      ret(gaussIndex, 0)=(double)deconv_p->mean;
+      ret(gaussIndex, 1)=(double)deconv_p->sigma;
+      ret(gaussIndex, 2)=(double)deconv_p->yFactor*deconv_p->weight;
+      gaussIndex++;
     }
+  if(hit==true) break;
   }
-  printf("united peaks below SNR/total=%d/%d\n", uPeaksBelowSNR, uMagPeaksMx.nrow());
+  //printf("united peaks below SNR/total=%d/%d\n", uPeaksBelowSNR, uMagPeaksMx.nrow());
 
   //Reserved memory is released.
   if(meanMagVec_p) delete [] meanMagVec_p;

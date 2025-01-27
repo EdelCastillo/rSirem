@@ -251,7 +251,7 @@ rPlotDeconv3<-function(drawInfo1, drawInfo2, drawInfo3, minMass=0, maxMass=0, rM
     for(i in 1 : nGauss) 
     {
       mean =mean_t[i]; #gaussians parameters
-      sigma=sigma_t[i];
+      sigma=sigma_t[i];rPlotKmeans()
       value=value_t[i];
       
       Y=value*exp(-((X-mean)^2)/(2*(sigma^2))); #magnitude of the current Gaussian.
@@ -687,3 +687,77 @@ rPlotConcentration<-function(rMSIData, pixel, minMz, maxMz)
   
   lines(xAxis, yAxis, type="l",col="red",lwd=2); #concentration
 }
+
+#' rKmeans()
+#' returns the result of kmeans segmentation.
+#' 
+#' @param peaksMatrix -> peak intensity matrix (rows=pixels; columns=centroids).
+#' @param clustersNumber -> number of segments.
+#'
+#' @return kmeans data
+#' @export
+#' 
+rKmeans<-function(peaksMatrix, clustersNumber, maxIter=10)
+{
+  K=kmeans(peaksMatrix, clustersNumber, iter.max=maxIter);
+  return(K);
+}
+
+#' rPlotKmeans
+#' presents the result of kmeans segmentation.
+#' 
+#' @param rMSIData -> sample data obtained from the file with rMSI2::LoadMsiData().
+#' @param kmeans -> list returned by rKmeans()
+#' @param view -> vector with the segments to display. By default all.
+#'
+#' @return nothing
+#' @export
+#' 
+rPlotKmeans<-function(rMSIData, kmeans, view=seq(1:clustersNumber))
+{
+  clustersNumber=max(kmeans$cluster)
+  require(graphics)
+  deltaColor=1.0/clustersNumber;  #color increase in HSV.
+  hSequ=seq(1, deltaColor, -deltaColor); #h sequence in HSV.
+  nColors=length(hSequ); #number of colors
+  rgb=rep(0, nColors); #colors in RGB format
+  nPixels=nrow(rMSIData$pos); #number of pixels
+  nView=length(view); #number of clusters to display
+  
+  for(c in 1:nColors)
+  {
+    rgb[c]=hsv(hSequ[c], 1, 1); #HSV to RGB conversion (s=1 & v=1)
+  }
+  
+  pxColors<-rep("#00000000", nPixels); #color vector for each pixel.
+  
+  logic=rep(FALSE, nPixels); #logical vector of size nPixels
+  sizeCluster=rep(0, nView) #vector of clusters to visualize
+  
+  #sorting by clusters from largest to smallest size
+  for(v in 1:clustersNumber)
+  {
+    logic=kmeans$cluster==v; #true if pixels belogs to cluster view[v]
+    sizeCluster[v]=length(kmeans$cluster[logic]); #cluster size
+  }
+  index=order(kmeans$size, decreasing = TRUE); #ordered indexes
+  
+  #The colors of the rainbow are established based on the size of the cluster.
+  #red=larger size -> violet=smaller
+  for(v in 1:nView) #for each clusters to display
+  {
+    logic=kmeans$cluster==index[view[v]]; #true if the pixel belongs to this cluster
+    pxColors[logic]=rgb[view[v]]; # RGB color
+    #    txt=sprintf("[%d]-%d", v, length(K$cluster[logic]));
+    #    print(txt);
+  }
+  
+  #exist rgb2hsv in graphics (RGB a HSV converssion )
+  #clusters are presented
+  txt=sprintf("%d clusters kmeans", nView)
+  plot(rMSIData$pos[,1], rMSIData$pos[,2], bg=pxColors, pch=22, lwd=0,
+       main=txt, xlab="pixel(X)", ylab="pixel(Y)")
+  
+}
+
+

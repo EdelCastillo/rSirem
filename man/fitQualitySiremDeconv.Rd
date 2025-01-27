@@ -13,7 +13,8 @@ fitQualitySiremDeconv(
   refMinMag = 1e-06,
   testMinMag = 1e-06,
   minMass = 0,
-  maxMass = 0
+  maxMass = 0,
+  histo = FALSE
 )
 }
 \arguments{

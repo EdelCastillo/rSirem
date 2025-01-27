@@ -3,7 +3,7 @@
 \name{peaksDeconvolved}
 \alias{peaksDeconvolved}
 \title{peaksDeconvolved
-Para cada pico de magnitud compuesto que contiene a picos simples de sirem,
+Para cada pico de magnitud compuesto que contiene a más de un pico simples de sirem,
 se anotan los picos de sirem incluidos y las gausianas asociadas}
 \usage{
 peaksDeconvolved(peaksInfo, gaussInfo, uPeakList = c())
@@ -34,6 +34,6 @@ col\link{5...}=list of masses into magnitude united peaks
 }
 \description{
 peaksDeconvolved
-Para cada pico de magnitud compuesto que contiene a picos simples de sirem,
+Para cada pico de magnitud compuesto que contiene a más de un pico simples de sirem,
 se anotan los picos de sirem incluidos y las gausianas asociadas
 }

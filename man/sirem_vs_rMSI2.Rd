@@ -5,12 +5,14 @@
 \title{sirem_vs_rMSI2
 genera datos estadísticos con las desviaciones de ambos algoritmos respecto a una muestra patrón}
 \usage{
-sirem_vs_rMSI2(sample, SNR)
+sirem_vs_rMSI2(sample, SNR, histo = FALSE)
 }
 \arguments{
 \item{sample}{-> sample. Valids: "C30k" y "C60k"}
 
 \item{SNR}{-> signal to noise ratio. Valids: 1, 2, 3, 5, 7}
+
+\item{histo}{-> TRUE si se quiere visualizar los histogramas}
 }
 \value{
 nothing

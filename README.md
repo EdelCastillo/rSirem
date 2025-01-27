@@ -25,7 +25,7 @@ output: html_document
 
 ### **Step 1**.- It consists of providing the file that contains the data set..
 
-> myData \<- rMSI2::LoadMsiData("absolute_path_file_name.imzML");
+> rMSIData \<- rMSI2::LoadMsiData("absolute_path_file_name.imzML");
 
 ### **Step 2**.- A list is generated with the test parameters.
 
@@ -70,7 +70,7 @@ normalization     : 0=none
 ```
 
 For **example:**  
-> siremPeaks<-rGetSiremPeaks(myData, params, 769.4, 769.75);
+> siremPeaks<-rGetSiremPeaks(rMSIData, params, 769.4, 769.75);
 
 
 ### **Step 4**.- The Gaussians that decompose the peaks are obtained.
@@ -91,9 +91,28 @@ return  list:
 ```
 
 > For **example:**   
-> gaussInfo\<-rGetGaussians(myData, siremPeaks, 0, 1);
+> gaussInfo\<-rGetGaussians(rMSIData, siremPeaks, 0, 1);
 
-### **Step 5**.- The results are displayed. This is an optional step.
+### **Step 5**.- the peak matrix is generated.
+
+> rGetPeaksMatrix\<-function(rMSIData, gaussiansMatrix)
+
+**Description of the parameters:**
+```
+           rMSIData: sample data obtained from the file with rMSI2::LoadMsiData().
+    gaussiansMatrix: data obtained from rGetGaussians().
+    
+return  list: 
+   peaksMatrix: matrix with the intensities of each mz on each pixel.
+         xAxis: X axis (Daltons)
+```
+> For **example:**   
+> peaksMatrix\<-rGetPeaksMatrix(rMSIData, gaussInfo$gaussians);
+
+
+### **Step 6**.- The results are displayed. This is an optional step.
+
+## The results of the deconvolution are displayed:
 
 > rPlotDeconv\<-function(gaussInfo)
 
@@ -102,5 +121,33 @@ return  list:
 
 >For **example**:  
 > rPlotDeconv(gaussInfo)
+
+## The results of the segmentation with kmeans are displayed.
+>rKmeans\<-function(peaksMatrix, clustersNumber, maxIter=10)
+
+**Description of the parameters:**
+```
+    peaksMatrix: data obtained from rGetPeaksMatrix().
+    clusterNumber: number of desired clusters.
+    maxIter: maximum desired iterations.
+return: 
+  kmeans data
+```
+> For **example:**   
+> kmeansInfo<-rKmeans(peaksMatrix, 8, 30)
+
+> rPlotKmeans\<-function(rMSIData, kmeansInfo, view=seq(1:clustersNumber))
+
+**Description of the parameters:**
+```
+    rMSIData: sample data obtained from the file with rMSI2::LoadMsiData().
+  kMeansInfo: data obtained from rKmeans().
+        view: vector with the segments to be displayed.
+return: 
+  nothing.
+```
+> For **example:**   
+> rPlotKmeans(rMSIData, kmeansInfo);
+> rPlotKmeans(rMSIData, kmeansInfo, view=c(1,2,3));
 
 >For [complementary information](./cmpInfo.md) about another functions.

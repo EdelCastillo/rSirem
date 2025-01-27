@@ -52,6 +52,11 @@ rGetGaussians<-function(rMSIData, siremInfo, pixel, minMeanValue)
   
   #Descomposición en gausianas
   gaussiansInfo<-rGmmPeaks(siremInfo$siremPeaks, pixelMagnitudes, minMeanValue, siremInfo$massAxis);
+  logic=gaussiansInfo[,1]!=0;
+  gaussiansInfo=gaussiansInfo[logic,]; #removes possible null values from the end of the matrix.
+  
+#  logic=gaussiansInfo[,1]>0;
+#  gaussiansInfo=gaussiansInfo[logic,];
   if(pixel>0) #se retorna las gausianas, el eje de mz y la parte del espectro asociado al eje mz 
     {gauss<-list(gaussians=gaussiansInfo, xAxis=siremInfo$massAxis, yAxis=pixelMagnitudes);}
   else #se retornan las gausianas, el eje de mz y los valores promediados

@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include "peaks.h"
 #include "GMM.h"
-#include "gmmPeaks.h"
+//#include "gmmPeaks.h"
 #include "siremPeaks.h"
 
 
@@ -90,7 +90,8 @@ private:
     GMM_STRUCT      m_sGmm;         //structure for deconvolution of a peak
     CONVOLVED_PEAKS *m_cnvPeaks_p;  //all peaks: magnitude and entropy
     int             m_nUnitedPeaks; //number of entries in m_unitedPeaks_p
-    GAUSSIAN        *m_deconv_p;    //pointer to gausians
+    GAUSSIAN        *m_deconv_p,    //pointer to gausians
+                    m_meanDeconv[32]; //array de gausianas con valores promediados
     int             m_nDeconv;      //deconvolution number of gaussians
     unsigned long   m_etpHits;      //sirem peaks array
     float           m_quality;      //quality of the Gaussian fit
