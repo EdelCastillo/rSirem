@@ -112,7 +112,7 @@ return  list:
 
 ### **Step 6**.- The results are displayed. This is an optional step.
 
-## The results of the deconvolution are displayed:
+#### The results of the deconvolution are displayed:
 
 > rPlotDeconv\<-function(gaussInfo)
 
@@ -122,7 +122,7 @@ return  list:
 >For **example**:  
 > rPlotDeconv(gaussInfo)
 
-## The results of the segmentation with kmeans are displayed.
+#### The results of the segmentation with kmeans are displayed.
 >rKmeans\<-function(peaksMatrix, clustersNumber, maxIter=10)
 
 **Description of the parameters:**
@@ -147,7 +147,7 @@ return:
   nothing.
 ```
 > For **example:**   
-> rPlotKmeans(rMSIData, kmeansInfo);
+> rPlotKmeans(rMSIData, kmeansInfo);\
 > rPlotKmeans(rMSIData, kmeansInfo, view=c(1,2,3));
 
 >For [complementary information](./cmpInfo.md) about another functions.
